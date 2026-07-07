@@ -4,13 +4,25 @@
  * Quản lý trạng thái 1 lượt làm bài: câu hiện tại, chấm điểm theo LẦN TRẢ LỜI
  * ĐẦU TIÊN của mỗi câu (trả lời lại sau đó không ảnh hưởng điểm), và tổng hợp
  * danh sách câu đã sai để phục vụ tính năng "Làm lại các câu đã sai".
+ *
+ * Hỗ trợ cấu hình mỗi lượt làm bài:
+ *  - count: số câu hỏi lấy ra làm (null = lấy tất cả)
+ *  - mode: 'shuffle' (đảo thứ tự câu hỏi trước khi chọn/hiển thị)
+ *          'order'   (giữ nguyên thứ tự câu hỏi gốc)
+ *    Lưu ý: dù chọn mode nào, vị trí đáp án A/B/C/D của TỪNG câu vẫn luôn
+ *    được đảo — đây là yêu cầu cố định, không phụ thuộc vào mode.
+ *
+ * Mỗi lần người dùng trả lời SAI một câu, vị trí đáp án A/B/C/D của câu đó
+ * sẽ được xáo lại ngay (reshuffleCurrentQuestion) trước khi cho trả lời lại,
+ * để tránh việc "học vẹt vị trí" thay vì học nội dung.
  * ------------------------------------------------------------------
  */
 
 (function (global) {
   'use strict';
 
-  const { buildSession, isAnswerCorrect } = global.QuizShuffle || require('./shuffle.js');
+  const { shuffleArray, shuffleQuestionOptions, isAnswerCorrect } =
+    global.QuizShuffle || require('./shuffle.js');
 
   function createEngine() {
     const state = {
@@ -26,16 +38,39 @@
       state.bank = questions;
     }
 
-    /**
-     * Bắt đầu một lượt làm bài mới từ danh sách câu hỏi nguồn (có thể là toàn bộ
-     * bank, hoặc chỉ tập con các câu đã sai). Luôn đảo thứ tự câu + đảo đáp án.
-     */
-    function startSession(sourceQuestions) {
-      state.sessionQuestions = buildSession(sourceQuestions).map(q => ({
-        ...q,
+    function toSessionQuestion(question) {
+      const shuffled = shuffleQuestionOptions(question);
+      return {
+        ...shuffled,
         attempted: false,
         firstAttemptCorrect: null
-      }));
+      };
+    }
+
+    /**
+     * Bắt đầu một lượt làm bài mới.
+     * @param {Array} sourceQuestions - danh sách câu hỏi nguồn (bank đầy đủ hoặc tập câu đã sai)
+     * @param {Object} [options]
+     * @param {'shuffle'|'order'} [options.mode='shuffle'] - có đảo thứ tự câu hỏi hay giữ nguyên
+     * @param {number|null} [options.count=null] - số câu lấy ra (null = lấy hết)
+     */
+    function startSession(sourceQuestions, options) {
+      const mode = (options && options.mode) || 'shuffle';
+      const count = (options && options.count) || null;
+
+      let pool = sourceQuestions.slice();
+
+      if (mode === 'shuffle') {
+        pool = shuffleArray(pool);
+      }
+      // mode === 'order' -> giữ nguyên thứ tự gốc trong pool
+
+      if (count && count < pool.length) {
+        pool = pool.slice(0, count);
+      }
+
+      // Dù mode nào, đáp án A/B/C/D của từng câu luôn được đảo.
+      state.sessionQuestions = pool.map(toSessionQuestion);
       state.currentIndex = 0;
       state.correctCount = 0;
       state.wrongQuestionIds = [];
@@ -48,13 +83,14 @@
     function getProgress() {
       return {
         current: state.currentIndex + 1,
-        total: state.sessionQuestions.length
+        total: state.sessionQuestions.length,
+        correctSoFar: state.correctCount
       };
     }
 
     /**
      * Xử lý khi người dùng chọn 1 đáp án cho câu hiện tại.
-     * Trả về: { correct, isLastQuestion, sessionFinished }
+     * Trả về: { correct, sessionFinished }
      */
     function submitAnswer(selectedIndex) {
       const q = state.sessionQuestions[state.currentIndex];
@@ -88,6 +124,25 @@
       return result;
     }
 
+    /**
+     * Xáo lại vị trí đáp án A/B/C/D của CÂU HIỆN TẠI (dùng sau khi trả lời sai,
+     * để lần trả lời lại không còn giữ nguyên thứ tự cũ). Không ảnh hưởng điểm
+     * hay trạng thái "attempted" đã ghi nhận trước đó.
+     */
+    function reshuffleCurrentQuestion() {
+      const current = state.sessionQuestions[state.currentIndex];
+      if (!current) return null;
+
+      const reshuffled = shuffleQuestionOptions(current);
+      const updated = {
+        ...current,
+        options: reshuffled.options,
+        correctIndex: reshuffled.correctIndex
+      };
+      state.sessionQuestions[state.currentIndex] = updated;
+      return updated;
+    }
+
     /** Tính kết quả cuối lượt: số đúng, tổng, điểm (làm tròn 2 chữ số thập phân). */
     function getFinalResult() {
       const total = state.sessionQuestions.length;
@@ -113,6 +168,7 @@
       getCurrentQuestion,
       getProgress,
       submitAnswer,
+      reshuffleCurrentQuestion,
       getFinalResult,
       getBank
     };

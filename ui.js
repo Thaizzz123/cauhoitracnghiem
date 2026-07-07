@@ -2,8 +2,8 @@
  * ui.js
  * ------------------------------------------------------------------
  * Các hàm thao tác DOM thuần túy: render câu hỏi, hiển thị phản hồi đúng/sai,
- * render lỗi parser, render kết quả cuối. Không chứa logic điều khiển luồng
- * (điều đó nằm ở app.js).
+ * render lỗi parser, render kết quả cuối, render chip chọn số câu/chế độ.
+ * Không chứa logic điều khiển luồng (điều đó nằm ở app.js).
  * ------------------------------------------------------------------
  */
 
@@ -28,18 +28,50 @@
     box.hidden = false;
   }
 
-  function renderQuestion(question, progress, onSelectOption) {
-    document.getElementById('quiz-progress-text').textContent =
-      `Câu ${progress.current} / ${progress.total}`;
-    document.getElementById('progress-bar-fill').style.width =
-      `${Math.round(((progress.current - 1) / progress.total) * 100)}%`;
+  /** Render danh sách chip chọn số câu hỏi, dựa trên tổng số câu hợp lệ. */
+  function renderCountChips(total, onSelectCount) {
+    const container = document.getElementById('count-row');
+    container.innerHTML = '';
 
-    document.getElementById('quiz-question-text').textContent = question.content;
+    const options = [];
+    if (total > 10) options.push({ label: '10 câu', value: 10 });
+    if (total > 20) options.push({ label: '20 câu', value: 20 });
+    options.push({ label: `Tất cả (${total})`, value: total });
 
-    const feedbackEl = document.getElementById('quiz-feedback');
-    feedbackEl.hidden = true;
-    feedbackEl.className = 'feedback';
+    options.forEach((opt, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'chip' + (idx === options.length - 1 ? ' active' : '');
+      chip.textContent = opt.label;
+      chip.dataset.count = opt.value;
+      chip.addEventListener('click', () => {
+        container.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        onSelectCount(opt.value);
+      });
+      container.appendChild(chip);
+    });
 
+    // Mặc định chọn "Tất cả"
+    onSelectCount(total);
+  }
+
+  function wireModeChips(onSelectMode) {
+    const container = document.getElementById('mode-row');
+    container.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        container.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        onSelectMode(chip.dataset.mode);
+      });
+    });
+  }
+
+  function renderConfigTotal(total) {
+    document.getElementById('config-total-text').textContent = `Tổng cộng: ${total} câu hợp lệ`;
+  }
+
+  /** Chỉ render lại danh sách nút đáp án (dùng khi vào câu mới HOẶC xáo lại sau câu sai). */
+  function renderOptionsList(question, onSelectOption) {
     const optionsContainer = document.getElementById('quiz-options');
     optionsContainer.innerHTML = '';
 
@@ -51,17 +83,30 @@
       btn.addEventListener('click', () => onSelectOption(idx, btn));
       optionsContainer.appendChild(btn);
     });
+
+    const feedbackEl = document.getElementById('quiz-feedback');
+    feedbackEl.hidden = true;
+    feedbackEl.className = 'feedback';
+  }
+
+  function renderQuestion(question, progress, onSelectOption) {
+    document.getElementById('quiz-progress-text').textContent =
+      `Câu ${progress.current} / ${progress.total}`;
+    document.getElementById('quiz-score-live').textContent = `${progress.correctSoFar} đúng`;
+    document.getElementById('progress-bar-fill').style.width =
+      `${Math.round(((progress.current - 1) / progress.total) * 100)}%`;
+
+    document.getElementById('quiz-question-text').textContent = question.content;
+
+    renderOptionsList(question, onSelectOption);
   }
 
   /**
    * Hiển thị hiệu ứng đúng/sai sau khi người dùng chọn 1 đáp án.
-   * @param {number} selectedIdx - chỉ số đáp án vừa chọn
-   * @param {number} correctIdx - chỉ số đáp án đúng
-   * @param {boolean} correct - đáp án vừa chọn có đúng không
-   * @param {HTMLElement} selectedBtn - phần tử button vừa được bấm
-   * @param {Function} onDone - callback gọi lại sau khi hiệu ứng kết thúc
+   * Chỉ phụ trách hiệu ứng hiển thị; KHÔNG quyết định bước tiếp theo
+   * (việc đó do app.js xử lý trong callback onDone).
    */
-  function showAnswerFeedback(selectedIdx, correctIdx, correct, selectedBtn, onDone) {
+  function showAnswerFeedback(correct, selectedBtn, onDone) {
     const allButtons = Array.from(document.querySelectorAll('#quiz-options .option-btn'));
     allButtons.forEach(b => (b.disabled = true));
 
@@ -72,19 +117,7 @@
     feedbackEl.textContent = correct ? 'Chính xác!' : 'Sai rồi, hãy chọn lại.';
     feedbackEl.className = 'feedback ' + (correct ? 'correct' : 'wrong');
 
-    setTimeout(() => {
-      if (correct) {
-        onDone();
-      } else {
-        // Sai: gỡ trạng thái để người dùng bắt buộc chọn lại câu này.
-        allButtons.forEach(b => {
-          b.disabled = false;
-          b.classList.remove('selected-wrong', 'selected-correct');
-        });
-        feedbackEl.hidden = true;
-        onDone();
-      }
-    }, FEEDBACK_DELAY_MS);
+    setTimeout(onDone, FEEDBACK_DELAY_MS);
   }
 
   function renderResult(final) {
@@ -96,6 +129,15 @@
     retryWrongBtn.hidden = final.wrongOriginalQuestions.length === 0;
   }
 
-  const api = { renderErrors, renderQuestion, showAnswerFeedback, renderResult };
+  const api = {
+    renderErrors,
+    renderCountChips,
+    wireModeChips,
+    renderConfigTotal,
+    renderQuestion,
+    renderOptionsList,
+    showAnswerFeedback,
+    renderResult
+  };
   global.QuizUI = api;
 })(typeof window !== 'undefined' ? window : globalThis);

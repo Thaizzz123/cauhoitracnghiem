@@ -11,7 +11,10 @@
   'use strict';
 
   const engine = window.QuizEngine.createEngine();
-  let lastFinalResult = null; // lưu kết quả lượt vừa xong để phục vụ nút "Làm lại các câu đã sai"
+  let lastFinalResult = null;   // kết quả lượt vừa xong, phục vụ nút "Làm lại các câu đã sai"
+  let currentBank = [];         // câu hỏi hợp lệ vừa parse được, chờ cấu hình để bắt đầu
+  let selectedCount = null;     // số câu được chọn ở màn hình cấu hình (null = tất cả)
+  let selectedMode = 'shuffle'; // 'shuffle' | 'order'
 
   function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
@@ -31,25 +34,22 @@
   }
 
   function handleSelectOption(selectedIdx, selectedBtn) {
-    const question = engine.getCurrentQuestion();
     const result = engine.submitAnswer(selectedIdx);
 
-    window.QuizUI.showAnswerFeedback(
-      selectedIdx,
-      question.correctIndex,
-      result.correct,
-      selectedBtn,
-      () => {
-        if (result.correct) {
-          if (result.sessionFinished) {
-            finishSession();
-          } else {
-            renderCurrentQuestion();
-          }
+    window.QuizUI.showAnswerFeedback(result.correct, selectedBtn, () => {
+      if (result.correct) {
+        if (result.sessionFinished) {
+          finishSession();
+        } else {
+          renderCurrentQuestion();
         }
-        // Nếu sai: không làm gì thêm, người dùng thấy lại đúng câu hỏi hiện tại để chọn lại.
+      } else {
+        // Sai: xáo lại vị trí A/B/C/D của CHÍNH câu này rồi cho chọn lại,
+        // để tránh việc chỉ nhớ vị trí thay vì nhớ nội dung đáp án đúng.
+        const reshuffled = engine.reshuffleCurrentQuestion();
+        window.QuizUI.renderOptionsList(reshuffled, handleSelectOption);
       }
-    );
+    });
   }
 
   function finishSession() {
@@ -58,18 +58,32 @@
     showScreen('screen-result');
   }
 
-  function startQuizFromText(rawText) {
-    const { questions, errors } = window.QuizParser.parseQuizText(rawText);
+  function goToConfigScreen() {
+    const { questions, errors } = window.QuizParser.parseQuizText(
+      document.getElementById('input-textarea').value
+    );
 
     window.QuizUI.renderErrors(errors);
 
     if (questions.length === 0) {
-      // Không có câu nào hợp lệ -> không cho bắt đầu.
+      // Không có câu nào hợp lệ -> không cho đi tiếp.
       return;
     }
 
+    currentBank = questions;
     engine.setBank(questions);
-    engine.startSession(questions);
+
+    window.QuizUI.renderConfigTotal(currentBank.length);
+    window.QuizUI.renderCountChips(currentBank.length, count => {
+      selectedCount = count;
+    });
+    selectedMode = 'shuffle';
+
+    showScreen('screen-config');
+  }
+
+  function beginQuizFromConfig() {
+    engine.startSession(currentBank, { mode: selectedMode, count: selectedCount });
     showScreen('screen-quiz');
     renderCurrentQuestion();
   }
@@ -84,22 +98,32 @@
     showScreen('screen-home');
   });
 
-  document.getElementById('btn-start-quiz').addEventListener('click', () => {
-    const rawText = document.getElementById('input-textarea').value;
-    startQuizFromText(rawText);
+  document.getElementById('btn-go-config').addEventListener('click', goToConfigScreen);
+
+  document.getElementById('btn-back-input').addEventListener('click', () => {
+    showScreen('screen-input');
+  });
+
+  document.getElementById('btn-begin-quiz').addEventListener('click', beginQuizFromConfig);
+
+  window.QuizUI.wireModeChips(mode => {
+    selectedMode = mode;
   });
 
   document.getElementById('btn-retry-wrong').addEventListener('click', () => {
     if (!lastFinalResult || lastFinalResult.wrongOriginalQuestions.length === 0) return;
-    engine.startSession(lastFinalResult.wrongOriginalQuestions);
+    // Luôn xáo cả thứ tự câu lẫn đáp án cho lượt luyện lại câu sai.
+    engine.startSession(lastFinalResult.wrongOriginalQuestions, { mode: 'shuffle', count: null });
     showScreen('screen-quiz');
     renderCurrentQuestion();
   });
 
   document.getElementById('btn-retry-all').addEventListener('click', () => {
-    engine.startSession(engine.getBank());
-    showScreen('screen-quiz');
-    renderCurrentQuestion();
+    window.QuizUI.renderConfigTotal(currentBank.length);
+    window.QuizUI.renderCountChips(currentBank.length, count => {
+      selectedCount = count;
+    });
+    showScreen('screen-config');
   });
 
   document.getElementById('btn-new-quiz').addEventListener('click', () => {
