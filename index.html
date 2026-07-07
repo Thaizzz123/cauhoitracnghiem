@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ôn Tập Trắc Nghiệm</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ MÀN HÌNH 1: TRANG CHỦ ============ -->
+  <section id="screen-home" class="screen active">
+    <div class="card home-card">
+      <h1>Ôn Tập Trắc Nghiệm</h1>
+      <p class="subtitle">Dán đề của bạn vào, hệ thống sẽ tự tạo bài luyện tập.</p>
+      <button id="btn-go-input" class="btn btn-primary">Nhập câu hỏi</button>
+    </div>
+  </section>
+
+  <!-- ============ MÀN HÌNH 2: NHẬP ĐỀ ============ -->
+  <section id="screen-input" class="screen">
+    <div class="card input-card">
+      <h2>Nhập đề trắc nghiệm</h2>
+      <p class="subtitle small">
+        Dán toàn bộ đề vào ô bên dưới. Định dạng mỗi câu: <code>Câu 1:</code>, 4 đáp án
+        <code>A. B. C. D.</code>, đáp án đúng đánh dấu bằng dấu sao ở trước, ví dụ
+        <code>*B. Hà Nội</code>.
+      </p>
+      <textarea id="input-textarea" placeholder="Câu 1: Thủ đô của Việt Nam là gì?&#10;A. Hồ Chí Minh&#10;*B. Hà Nội&#10;C. Đà Nẵng&#10;D. Huế"></textarea>
+
+      <div id="input-errors" class="error-box" hidden></div>
+
+      <div class="button-row">
+        <button id="btn-back-home" class="btn btn-secondary">Quay lại</button>
+        <button id="btn-start-quiz" class="btn btn-primary">Bắt đầu ôn tập</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MÀN HÌNH 3: LÀM BÀI ============ -->
+  <section id="screen-quiz" class="screen">
+    <div class="card quiz-card">
+      <div class="quiz-progress">
+        <span id="quiz-progress-text">Câu 1 / 10</span>
+        <div class="progress-bar"><div id="progress-bar-fill" class="progress-bar-fill"></div></div>
+      </div>
+
+      <h2 id="quiz-question-text" class="question-text"></h2>
+
+      <div id="quiz-options" class="options-list"></div>
+
+      <div id="quiz-feedback" class="feedback" hidden></div>
+    </div>
+  </section>
+
+  <!-- ============ MÀN HÌNH 4: KẾT QUẢ ============ -->
+  <section id="screen-result" class="screen">
+    <div class="card result-card">
+      <h2>Kết quả</h2>
+      <div class="score-display">
+        <span id="result-score" class="score-number">0</span>
+        <span class="score-unit">điểm</span>
+      </div>
+      <p id="result-detail" class="subtitle">Đúng 0 / 0 câu</p>
+
+      <div class="button-row column">
+        <button id="btn-retry-wrong" class="btn btn-primary" hidden>Làm lại các câu đã sai</button>
+        <button id="btn-retry-all" class="btn btn-secondary">Làm lại toàn bộ đề</button>
+        <button id="btn-new-quiz" class="btn btn-secondary">Nhập đề khác</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script src="js/parser.js"></script>
+<script src="js/shuffle.js"></script>
+<script src="js/quiz-engine.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
