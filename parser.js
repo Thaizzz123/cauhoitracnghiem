@@ -12,8 +12,20 @@
  *   D. Phương án 4
  *
  * NGUYÊN TẮC THIẾT KẾ:
- *  - Không dựa vào số thứ tự "Câu N" gốc (có thể sai/trùng/thiếu) để đánh số.
- *    Hệ thống tự đánh số lại tuần tự theo thứ tự xuất hiện.
+ *  - Số hiển thị cuối cùng LUÔN được hệ thống tự đánh lại tuần tự 1..N theo
+ *    THỨ TỰ CUỐI CÙNG đã được sắp xếp (không bao giờ giữ nguyên số gốc để
+ *    tránh nhảy cóc/trùng/thiếu). Số gốc "Câu N" chỉ được dùng làm CĂN CỨ
+ *    SẮP XẾP khi có nhóm câu bị lẫn số khác nhóm còn lại (xem quy tắc sắp
+ *    xếp bên dưới), KHÔNG phải để giữ làm số hiển thị.
+ *  - Quy tắc sắp xếp khi trong đề vừa có câu ĐÁNH SỐ ("Câu 5") vừa có câu
+ *    KHÔNG SỐ ("Câu"/"Câu:"):
+ *      1. Đếm số lượng câu có số (nhóm SỐ) và không số (nhóm TRỐNG).
+ *      2. Nhóm nào ÍT hơn bị xem là các trường hợp lạc loài, bị đẩy XUỐNG
+ *         CUỐI bảng; nhóm nhiều hơn đứng trước làm "khung chính".
+ *      3. Trong nhóm SỐ: sắp xếp theo số gốc tăng dần.
+ *         Trong nhóm TRỐNG: giữ nguyên thứ tự xuất hiện trong văn bản gốc.
+ *      4. Nếu hai nhóm bằng số lượng nhau (50/50): nhóm SỐ luôn đứng trước.
+ *      5. Cuối cùng đánh số lại toàn bộ 1..N theo thứ tự đã sắp ở trên.
  *  - Không dựa vào việc xuống dòng để tách nội dung. Mọi khoảng trắng
  *    (space, tab, newline liên tiếp) đều được coi là tương đương và gộp lại,
  *    nhờ vậy các lỗi: khoảng trắng sai, xuống dòng sai, dòng trắng thừa,
@@ -29,16 +41,17 @@
   'use strict';
 
   // Mốc nhận diện đầu 1 câu hỏi: chữ "Câu"/"Cau" (không phân biệt hoa/thường,
-  // có/không dấu) + SỐ (tuỳ chọn, có thể thiếu) + dấu phân cách (tuỳ chọn).
+  // có/không dấu) + SỐ (tuỳ chọn, có thể thiếu, được BẮT làm group để dùng
+  // cho việc sắp xếp) + dấu phân cách (tuỳ chọn).
   // Cho phép mọi biến thể: "Câu 1:", "Câu1.", "câu 12 -", "CÂU 3:", "cÂu:",
   // "Câu :", "Cau", "Câu — 4)", v.v.
   // Điều kiện bắt buộc: phải có ÍT NHẤT MỘT trong hai thứ đi sau chữ "câu"
   // (cách nhau bởi khoảng trắng tuỳ ý) là SỐ hoặc DẤU PHÂN CÁCH — để tránh
   // nhận nhầm chữ "câu" xuất hiện tự nhiên trong nội dung văn bản (vd: "trả
   // lời câu hỏi này").
-  //   - Nhánh 1: có số (số là tuỳ chọn dấu phân cách theo sau)
+  //   - Nhánh 1: có số (group 1 = chuỗi số), tuỳ chọn dấu phân cách theo sau
   //   - Nhánh 2: không có số, nhưng bắt buộc có dấu phân cách
-  const QUESTION_MARK_REGEX = /C[aâ]u\s*(?:\d+\s*[:.\-–—)]?|[:.\-–—)])\s*/gi;
+  const QUESTION_MARK_REGEX = /C[aâ]u\s*(?:(\d+)\s*[:.\-–—)]?|[:.\-–—)])\s*/gi;
 
   // Mốc nhận diện 1 đáp án: dấu * (tuỳ chọn, đánh dấu đáp án đúng) + chữ cái A-D
   // + dấu phân cách (bắt buộc phải có 1 trong các dấu sau, để tránh nhận nhầm
@@ -160,7 +173,7 @@
       return result;
     }
 
-    // Tìm tất cả vị trí bắt đầu của mỗi câu hỏi dựa trên nhãn "Câu N".
+    // Tìm tất cả vị trí bắt đầu của mỗi câu hỏi dựa trên nhãn "Câu N" (hoặc "Câu").
     const markMatches = [...rawText.matchAll(QUESTION_MARK_REGEX)];
 
     if (markMatches.length === 0) {
@@ -172,33 +185,74 @@
       return result;
     }
 
-    // Cắt văn bản thành từng khối, mỗi khối bắt đầu ngay SAU nhãn "Câu N"
-    // và kết thúc ngay TRƯỚC nhãn "Câu N" tiếp theo (hoặc hết văn bản).
+    // BƯỚC 1: Cắt văn bản thành từng khối theo thứ tự xuất hiện gốc, đồng thời
+    // ghi nhận số gốc (nếu có) đọc được từ chính nhãn "Câu N" của khối đó.
+    // Câu lỗi (thiếu A/B/C/D, thiếu/thừa dấu *...) được báo ngay tại đây,
+    // không tham gia vào bước sắp xếp/đánh số bên dưới.
+    const parsedBlocks = []; // { appearanceIndex, originalNumber (number|null), parsed }
+
     for (let i = 0; i < markMatches.length; i++) {
       const blockStart = markMatches[i].index + markMatches[i][0].length;
       const blockEnd = i < markMatches.length - 1 ? markMatches[i + 1].index : rawText.length;
       const block = rawText.slice(blockStart, blockEnd);
+      const originalNumber = markMatches[i][1] ? parseInt(markMatches[i][1], 10) : null;
 
-      const displayNumber = i + 1; // Tự đánh số lại, không tin số gốc trong đề
       const parsed = parseQuestionBlock(block);
 
       if (parsed.error) {
         result.errors.push({
-          number: displayNumber,
+          number: i + 1, // vị trí xuất hiện thứ mấy trong văn bản gốc (chỉ để định vị lỗi)
           snippet: normalizeWhitespace(block).slice(0, 100),
           reason: parsed.error
         });
         continue;
       }
 
-      result.questions.push({
-        id: 'q_' + displayNumber + '_' + Date.now(),
-        number: displayNumber,
-        content: parsed.content,
-        options: parsed.options,
-        correctIndex: parsed.correctIndex
+      parsedBlocks.push({
+        appearanceIndex: i,
+        originalNumber,
+        parsed
       });
     }
+
+    // BƯỚC 2: Áp dụng quy tắc sắp xếp:
+    //  - Nhóm CÓ SỐ: các câu đọc được số gốc từ nhãn "Câu N".
+    //  - Nhóm KHÔNG SỐ: các câu chỉ có nhãn "Câu" trơn (không số).
+    //  - Nhóm nào ÍT hơn bị đẩy xuống cuối; bằng nhau thì nhóm CÓ SỐ lên đầu.
+    //  - Trong nhóm CÓ SỐ: sắp theo số gốc tăng dần (ổn định nếu trùng số).
+    //  - Trong nhóm KHÔNG SỐ: giữ nguyên thứ tự xuất hiện gốc.
+    const numberedGroup = parsedBlocks
+      .filter((b) => b.originalNumber !== null)
+      .sort((a, b) => a.originalNumber - b.originalNumber || a.appearanceIndex - b.appearanceIndex);
+
+    const unnumberedGroup = parsedBlocks
+      .filter((b) => b.originalNumber === null)
+      .sort((a, b) => a.appearanceIndex - b.appearanceIndex);
+
+    let finalOrder;
+    if (unnumberedGroup.length > numberedGroup.length) {
+      // Đa số không đánh số -> khung chính là nhóm không số, nhóm có số
+      // (thiểu số, "lạc loài") bị đẩy xuống cuối, sắp theo số tăng dần.
+      finalOrder = unnumberedGroup.concat(numberedGroup);
+    } else {
+      // Đa số có đánh số, hoặc hai nhóm bằng nhau (50/50) -> nhóm có số lên
+      // đầu (sắp theo số tăng dần), nhóm không số (thiểu số/còn lại) xuống
+      // cuối theo đúng thứ tự xuất hiện gốc.
+      finalOrder = numberedGroup.concat(unnumberedGroup);
+    }
+
+    // BƯỚC 3: Đánh số lại tuần tự 1..N theo thứ tự cuối cùng đã sắp xếp,
+    // xoá hoàn toàn số gốc để tránh nhảy cóc/trùng số.
+    finalOrder.forEach((b, idx) => {
+      const displayNumber = idx + 1;
+      result.questions.push({
+        id: 'q_' + displayNumber + '_' + Date.now() + '_' + b.appearanceIndex,
+        number: displayNumber,
+        content: b.parsed.content,
+        options: b.parsed.options,
+        correctIndex: b.parsed.correctIndex
+      });
+    });
 
     return result;
   }
