@@ -28,13 +28,24 @@
 (function (global) {
   'use strict';
 
-  // Mốc nhận diện đầu 1 câu hỏi: "Câu" + số + dấu . : - (tuỳ chọn)
-  // Cho phép: "Câu 1:", "Câu1.", "câu 12 -", "CÂU 3:"
-  const QUESTION_MARK_REGEX = /C[aâ]u\s*\d+\s*[:.\-]?\s*/gi;
+  // Mốc nhận diện đầu 1 câu hỏi: chữ "Câu"/"Cau" (không phân biệt hoa/thường,
+  // có/không dấu) + SỐ (tuỳ chọn, có thể thiếu) + dấu phân cách (tuỳ chọn).
+  // Cho phép mọi biến thể: "Câu 1:", "Câu1.", "câu 12 -", "CÂU 3:", "cÂu:",
+  // "Câu :", "Cau", "Câu — 4)", v.v.
+  // Điều kiện bắt buộc: phải có ÍT NHẤT MỘT trong hai thứ đi sau chữ "câu"
+  // (cách nhau bởi khoảng trắng tuỳ ý) là SỐ hoặc DẤU PHÂN CÁCH — để tránh
+  // nhận nhầm chữ "câu" xuất hiện tự nhiên trong nội dung văn bản (vd: "trả
+  // lời câu hỏi này").
+  //   - Nhánh 1: có số (số là tuỳ chọn dấu phân cách theo sau)
+  //   - Nhánh 2: không có số, nhưng bắt buộc có dấu phân cách
+  const QUESTION_MARK_REGEX = /C[aâ]u\s*(?:\d+\s*[:.\-–—)]?|[:.\-–—)])\s*/gi;
 
-  // Mốc nhận diện 1 đáp án: dấu * (tuỳ chọn, đánh dấu đáp án đúng) + chữ cái A-D + . hoặc : hoặc )
+  // Mốc nhận diện 1 đáp án: dấu * (tuỳ chọn, đánh dấu đáp án đúng) + chữ cái A-D
+  // + dấu phân cách (bắt buộc phải có 1 trong các dấu sau, để tránh nhận nhầm
+  // chữ cái A/B/C/D xuất hiện tự nhiên trong nội dung câu hỏi/đáp án):
+  // . : ) - – —
   function optionMarkRegex(letter) {
-    return new RegExp('(\\*)?\\s*' + letter + '\\s*[.):]\\s*', 'i');
+    return new RegExp('(\\*)?\\s*' + letter + '\\s*[.:\\-–—)]\\s*', 'i');
   }
 
   /**
