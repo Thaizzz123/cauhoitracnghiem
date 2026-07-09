@@ -29,6 +29,20 @@
 
       <textarea id="input-textarea" placeholder="Câu 1: Thủ đô của Việt Nam là gì?&#10;A. Hồ Chí Minh&#10;*B. Hà Nội&#10;C. Đà Nẵng&#10;D. Huế"></textarea>
 
+      <div class="file-upload-zone">
+        <div class="field-label">Hoặc tải file lên (.txt)</div>
+        <p class="file-upload-hint">
+          Nội dung file phải theo đúng định dạng "Câu ... / A. / B. / C. / D." như trên.
+          Chọn được nhiều file cùng lúc, hoặc bấm chọn nhiều lần — file nào tải lên
+          trước sẽ được đánh số câu hỏi trước, file sau tiếp nối ngay theo sau.
+        </p>
+        <label for="input-file" class="file-upload-btn">
+          <span>Chọn file...</span>
+        </label>
+        <input type="file" id="input-file" accept=".txt,text/plain" multiple hidden>
+        <div id="file-list" class="file-list"></div>
+      </div>
+
       <div id="input-errors" class="error-box" hidden></div>
 
       <div class="button-row">

@@ -195,6 +195,110 @@ code {
   outline-offset: -1px;
 }
 
+/* ---------- File upload zone ---------- */
+.file-upload-zone {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--border);
+}
+
+.file-upload-hint {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.file-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  background: #0a141c;
+  color: var(--accent);
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.file-upload-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  background: #0a141c;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 0.85rem;
+}
+
+.file-item-order {
+  font-family: var(--mono);
+  color: var(--accent);
+  font-size: 0.78rem;
+  flex-shrink: 0;
+  min-width: 20px;
+}
+
+.file-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-item-name {
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-item-status {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.file-item.status-error .file-item-status {
+  color: var(--danger);
+}
+
+.file-item.status-ready .file-item-status {
+  color: var(--accent-dim);
+}
+
+.file-item-remove {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.file-item-remove:hover {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
 .error-box {
   margin-top: 16px;
   background: var(--danger-bg);
@@ -210,6 +314,12 @@ code {
 .error-box ul {
   margin: 4px 0 0;
   padding-left: 18px;
+}
+
+.error-source {
+  font-family: var(--mono);
+  font-size: 0.78em;
+  opacity: 0.85;
 }
 
 /* ---------- Config screen (chips) ---------- */

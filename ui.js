@@ -21,11 +21,65 @@
     }
     const items = errors.map(e => {
       const label = e.number ? `Câu ${e.number}` : 'Lỗi chung';
+      const sourceTag = e.source ? ` <span class="error-source">[${e.source}]</span>` : '';
       const snippet = e.snippet ? ` — "${e.snippet}${e.snippet.length >= 100 ? '...' : ''}"` : '';
-      return `<li><strong>${label}:</strong> ${e.reason}${snippet}</li>`;
+      return `<li><strong>${label}:</strong>${sourceTag} ${e.reason}${snippet}</li>`;
     }).join('');
-    box.innerHTML = `<strong>Phát hiện ${errors.length} lỗi trong đề:</strong><ul>${items}</ul>`;
+    box.innerHTML = `<strong>Phát hiện ${errors.length} lỗi:</strong><ul>${items}</ul>`;
     box.hidden = false;
+  }
+
+  /**
+   * Render danh sách file đã tải lên, giữ đúng thứ tự upload (thứ tự này
+   * quyết định thứ tự đánh số câu hỏi). Mỗi mục hiển thị số thứ tự, tên file,
+   * trạng thái đọc file, và nút xoá khỏi danh sách.
+   * @param {Array<{id, name, status: 'reading'|'ready'|'error', text, errorMsg, questionCount}>} files
+   * @param {(id: string) => void} onRemove
+   */
+  function renderFileList(files, onRemove) {
+    const container = document.getElementById('file-list');
+    container.innerHTML = '';
+
+    files.forEach((f, idx) => {
+      const item = document.createElement('div');
+      item.className = 'file-item status-' + f.status;
+
+      const order = document.createElement('div');
+      order.className = 'file-item-order';
+      order.textContent = '#' + (idx + 1);
+
+      const info = document.createElement('div');
+      info.className = 'file-item-info';
+
+      const name = document.createElement('div');
+      name.className = 'file-item-name';
+      name.textContent = f.name;
+
+      const status = document.createElement('div');
+      status.className = 'file-item-status';
+      if (f.status === 'reading') {
+        status.textContent = 'Đang đọc file...';
+      } else if (f.status === 'error') {
+        status.textContent = f.errorMsg || 'Lỗi đọc file.';
+      } else {
+        status.textContent = 'Sẵn sàng';
+      }
+
+      info.appendChild(name);
+      info.appendChild(status);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'file-item-remove';
+      removeBtn.textContent = '✕';
+      removeBtn.title = 'Bỏ file này';
+      removeBtn.addEventListener('click', () => onRemove(f.id));
+
+      item.appendChild(order);
+      item.appendChild(info);
+      item.appendChild(removeBtn);
+      container.appendChild(item);
+    });
   }
 
   /** Render danh sách chip chọn số câu hỏi, dựa trên tổng số câu hợp lệ. */
@@ -131,6 +185,7 @@
 
   const api = {
     renderErrors,
+    renderFileList,
     renderCountChips,
     wireModeChips,
     renderConfigTotal,

@@ -257,8 +257,56 @@
     return result;
   }
 
+  /**
+   * Gộp nhiều NGUỒN văn bản (vd: nội dung textarea + nhiều file upload) thành
+   * 1 bộ câu hỏi duy nhất, theo nguyên tắc:
+   *  - Mỗi nguồn được parse ĐỘC LẬP bằng parseQuizText (áp dụng đầy đủ quy tắc
+   *    sắp xếp/đánh số nội bộ riêng cho nguồn đó — không trộn lẫn số giữa
+   *    các nguồn khi quyết định thứ tự).
+   *  - Nguồn nào đứng TRƯỚC trong mảng `sources` thì câu hỏi của nó được đánh
+   *    số TRƯỚC. Nguồn tiếp theo được đánh số tiếp nối ngay sau số cuối cùng
+   *    của nguồn trước đó (vd nguồn 1 có 10 câu -> 1-10, nguồn 2 tiếp -> 11-20).
+   *  - Lỗi của từng nguồn được giữ nguyên, kèm nhãn `source` để biết lỗi
+   *    thuộc file/nguồn nào.
+   *
+   * @param {Array<{label: string, text: string}>} sources
+   * @returns {{questions: Array, errors: Array}}
+   */
+  function parseMultipleQuizTexts(sources) {
+    const combined = { questions: [], errors: [] };
+    let offset = 0;
+
+    (sources || []).forEach((source) => {
+      const label = source.label || '';
+      const text = source.text || '';
+
+      if (!text.trim()) {
+        return; // Bỏ qua nguồn trống (vd chưa nhập gì vào textarea)
+      }
+
+      const r = parseQuizText(text);
+
+      r.errors.forEach((e) => {
+        combined.errors.push(Object.assign({}, e, { source: label }));
+      });
+
+      r.questions.forEach((q) => {
+        const newNumber = offset + q.number;
+        combined.questions.push(Object.assign({}, q, {
+          number: newNumber,
+          id: 'q_' + newNumber + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+          source: label
+        }));
+      });
+
+      offset += r.questions.length;
+    });
+
+    return combined;
+  }
+
   // Export cho cả trình duyệt (global) lẫn Node.js (dùng để test)
-  const api = { parseQuizText };
+  const api = { parseQuizText, parseMultipleQuizTexts };
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api;
   } else {
