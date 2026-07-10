@@ -60,14 +60,34 @@
   // lời câu hỏi này").
   //   - Nhánh 1: có số (group 1 = chuỗi số), tuỳ chọn dấu phân cách theo sau
   //   - Nhánh 2: không có số, nhưng bắt buộc có dấu phân cách
-  const QUESTION_MARK_REGEX = /C[aâ]u\s*(?:(\d+)\s*[:.\-–—)]?|[:.\-–—)])\s*/gi;
+  // (?<![\p{L}]) đảm bảo "Câu" không phải là đuôi của 1 từ khác (phòng xa,
+  // dù trường hợp này rất hiếm với từ "câu" trong tiếng Việt).
+  const QUESTION_MARK_REGEX = /(?<![\p{L}])C[aâ]u\s*(?:(\d+)\s*[:.\-–—)]?|[:.\-–—)])\s*/giu;
 
   // Mốc nhận diện 1 đáp án: dấu * (tuỳ chọn, đánh dấu đáp án đúng) + chữ cái A-D
   // + dấu phân cách (bắt buộc phải có 1 trong các dấu sau, để tránh nhận nhầm
   // chữ cái A/B/C/D xuất hiện tự nhiên trong nội dung câu hỏi/đáp án):
   // . : ) - – —
-  function optionMarkRegex(letter) {
-    return new RegExp('(\\*)?\\s*' + letter + '\\s*[.:\\-–—)]\\s*', 'i');
+  // QUAN TRỌNG: bắt buộc mốc phải đứng ĐẦU 1 DÒNG MỚI (ngay sau dấu xuống
+  // dòng, hoặc ở đầu block) — group 1 = (đầu block | newline).
+  // Lý do: nội dung đáp án trong thực tế rất hay chứa các cụm kiểu "C.Mác",
+  // "C. Mác", "V.I.Lênin", "Ph.Ăngghen" (cách viết tắt tên riêng phổ biến
+  // trong tiếng Việt) — nếu không có ràng buộc "đầu dòng" này, cụm "C." bên
+  // trong nội dung đáp án khác (vd đáp án B chứa "...C.Mác...") sẽ bị hiểu
+  // nhầm thành mốc bắt đầu đáp án C thật, làm hỏng toàn bộ câu hỏi. Mốc đáp
+  // án thật luôn đứng riêng 1 dòng nên ràng buộc này an toàn và triệt để.
+  function optionMarkRegexStrict(letter) {
+    return new RegExp('(^|\\n)\\s*(\\*)?\\s*' + letter + '\\s*[.:\\-–—)]\\s*', 'giu');
+  }
+
+  // Phiên bản LỎNG HƠN (không bắt buộc đầu dòng, chỉ chặn chữ cái nằm giữa
+  // 1 từ khác qua \p{L} lookbehind) — CHỈ dùng làm phương án dự phòng khi cả
+  // block hoàn toàn không có newline nào (người dùng viết liền cả câu hỏi
+  // lẫn 4 đáp án trên đúng 1 dòng, không xuống dòng chỗ nào). Trong trường
+  // hợp đó không có "đầu dòng" nào để dựa vào, nên đành chấp nhận rủi ro
+  // nhận nhầm (hiếm khi xảy ra với văn bản viết liền, ngắn gọn).
+  function optionMarkRegexLenient(letter) {
+    return new RegExp('(?<![\\p{L}])(\\*)?\\s*' + letter + '\\s*[.:\\-–—)]\\s*', 'giu');
   }
 
   /**
@@ -84,15 +104,29 @@
    * { content, options: [text,text,text,text], correctIndex, error }
    */
   function parseQuestionBlock(block) {
+    // Nếu cả block hoàn toàn không có newline nào (viết liền 1 dòng), không
+    // có "đầu dòng" nào để dựa vào -> dùng bản LỎNG (không yêu cầu đầu dòng).
+    // Ngược lại (có cấu trúc newline rõ ràng, là trường hợp phổ biến nhất
+    // với file Word/văn bản đề thi thật) -> dùng bản CHẶT (bắt buộc đầu
+    // dòng) để tránh nhận nhầm các cụm như "C.Mác" nằm giữa nội dung.
+    const useStrict = block.indexOf('\n') !== -1;
+    const buildRegex = useStrict ? optionMarkRegexStrict : optionMarkRegexLenient;
+
     // Tìm lần lượt vị trí các mốc A, B, C, D theo đúng thứ tự xuất hiện.
     const letters = ['A', 'B', 'C', 'D'];
     const positions = []; // { letter, index, matchLength, hasStar }
 
     let searchStart = 0;
     for (const letter of letters) {
-      const regex = optionMarkRegex(letter);
-      const remaining = block.slice(searchStart);
-      const match = remaining.match(regex);
+      const regex = buildRegex(letter);
+      // QUAN TRỌNG: dùng regex.exec() với lastIndex trên chính "block" gốc,
+      // KHÔNG cắt chuỗi con (block.slice(searchStart)) rồi match riêng —
+      // nếu cắt chuỗi con, dấu "^" (đầu chuỗi) trong regex sẽ bị hiểu nhầm
+      // là "đầu dòng thật" ngay tại điểm cắt (dù điểm đó có thể đang nằm
+      // giữa dòng của đáp án trước), gây match sai. Search trên block gốc
+      // thì "^" chỉ khớp đúng vị trí 0 thật sự của cả block.
+      regex.lastIndex = searchStart;
+      const match = regex.exec(block);
 
       if (!match) {
         return {
@@ -106,14 +140,16 @@
         };
       }
 
-      const matchIndexInRemaining = remaining.indexOf(match[0]);
-      const absoluteIndex = searchStart + matchIndexInRemaining;
+      const absoluteIndex = match.index;
+      // Regex "strict" có 2 group: group1 = đầu dòng/newline, group2 = dấu "*".
+      // Regex "lenient" chỉ có 1 group: group1 = dấu "*" (không có phần đầu dòng).
+      const hasStar = useStrict ? !!match[2] : !!match[1];
 
       positions.push({
         letter,
         start: absoluteIndex,
         end: absoluteIndex + match[0].length,
-        hasStar: !!match[1]
+        hasStar: hasStar
       });
 
       searchStart = absoluteIndex + match[0].length;
