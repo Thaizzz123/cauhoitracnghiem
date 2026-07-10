@@ -16,6 +16,12 @@
   let selectedCount = null;     // số câu được chọn ở màn hình cấu hình (null = tất cả)
   let selectedMode = 'shuffle'; // 'shuffle' | 'order'
 
+  // Chỉ số (0-based) của câu ĐANG ĐƯỢC XEM trên màn hình, có thể khác với
+  // câu đang làm thật (engine.getCurrentIndex()) khi người dùng bấm "<-" hoặc
+  // chọn 1 câu cũ trong menu để coi lại. viewedIndex === engine.getCurrentIndex()
+  // nghĩa là đang ở câu sống (live), cho phép bấm chọn đáp án bình thường.
+  let viewedIndex = 0;
+
   // Danh sách file đã tải lên, giữ đúng thứ tự upload (dữ liệu chỉ tồn tại
   // tạm thời trong bộ nhớ của tab hiện tại — reset trang là mất, đúng như
   // toàn bộ dữ liệu khác của app này).
@@ -28,19 +34,55 @@
     document.getElementById(screenId).classList.add('active');
   }
 
-  function renderCurrentQuestion() {
-    const question = engine.getCurrentQuestion();
-    const progress = engine.getProgress();
+  /**
+   * Hiển thị câu tại vị trí `index` trong phiên hiện tại.
+   *  - Nếu index chính là câu đang làm thật (live) -> render bình thường,
+   *    cho phép chọn đáp án.
+   *  - Nếu index là 1 câu ĐÃ QUA (< câu live) -> render ở chế độ CHỈ XEM
+   *    (coi lại), tô xanh đáp án đúng / đỏ đáp án đã chọn sai, không cho bấm.
+   */
+  function showQuestionAtIndex(index) {
+    const total = engine.getSessionLength();
+    if (total === 0) return;
 
-    if (!question) {
+    const liveIndex = engine.getCurrentIndex();
+    const clamped = Math.max(0, Math.min(index, liveIndex));
+    viewedIndex = clamped;
+
+    const question = engine.getQuestionAt(viewedIndex);
+    if (!question) return;
+
+    const progress = engine.getProgress();
+    const displayProgress = {
+      current: viewedIndex + 1,
+      total,
+      correctSoFar: progress.correctSoFar,
+      liveCurrent: liveIndex + 1
+    };
+
+    if (viewedIndex === liveIndex) {
+      window.QuizUI.renderQuestion(question, displayProgress, handleSelectOption);
+    } else {
+      window.QuizUI.renderQuestionReview(question, displayProgress);
+    }
+
+    window.QuizUI.updateQuizNav(viewedIndex, liveIndex);
+  }
+
+  function renderCurrentQuestion() {
+    if (!engine.getCurrentQuestion()) {
       finishSession();
       return;
     }
-
-    window.QuizUI.renderQuestion(question, progress, handleSelectOption);
+    showQuestionAtIndex(engine.getCurrentIndex());
   }
 
   function handleSelectOption(selectedIdx, selectedBtn) {
+    // Chỉ cho phép trả lời khi đang thực sự ở câu live (nút đáp án ở chế độ
+    // coi lại đã bị disable từ UI nên trường hợp này không xảy ra, nhưng vẫn
+    // chặn lại cho chắc).
+    if (viewedIndex !== engine.getCurrentIndex()) return;
+
     const result = engine.submitAnswer(selectedIdx);
 
     window.QuizUI.showAnswerFeedback(result.correct, selectedBtn, () => {
@@ -48,7 +90,7 @@
         if (result.sessionFinished) {
           finishSession();
         } else {
-          renderCurrentQuestion();
+          showQuestionAtIndex(engine.getCurrentIndex());
         }
       } else {
         // Sai: xáo lại vị trí A/B/C/D của CHÍNH câu này rồi cho chọn lại,
@@ -62,6 +104,7 @@
   function finishSession() {
     lastFinalResult = engine.getFinalResult();
     window.QuizUI.renderResult(lastFinalResult);
+    window.QuizUI.closeQuestionListModal();
     showScreen('screen-result');
   }
 
@@ -113,6 +156,7 @@
 
   function beginQuizFromConfig() {
     engine.startSession(currentBank, { mode: selectedMode, count: selectedCount });
+    viewedIndex = 0;
     showScreen('screen-quiz');
     renderCurrentQuestion();
   }
@@ -250,6 +294,7 @@
     if (!lastFinalResult || lastFinalResult.wrongOriginalQuestions.length === 0) return;
     // Luôn xáo cả thứ tự câu lẫn đáp án cho lượt luyện lại câu sai.
     engine.startSession(lastFinalResult.wrongOriginalQuestions, { mode: 'shuffle', count: null });
+    viewedIndex = 0;
     showScreen('screen-quiz');
     renderCurrentQuestion();
   });
@@ -268,5 +313,51 @@
     window.QuizUI.renderErrors([]);
     showScreen('screen-input');
   });
+
+  // ---------------- Coi lại câu hỏi (review mode) ----------------
+
+  // Nút "<-" góc dưới trái: lùi lại xem câu ngay trước câu đang xem.
+  document.getElementById('btn-quiz-back').addEventListener('click', () => {
+    showQuestionAtIndex(viewedIndex - 1);
+  });
+
+  // Nút "☰" góc dưới phải: mở menu liệt kê toàn bộ câu trong phiên.
+  document.getElementById('btn-quiz-list').addEventListener('click', () => {
+    window.QuizUI.renderQuestionListMenu(
+      sessionSnapshot(),
+      engine.getCurrentIndex(),
+      (idx) => {
+        window.QuizUI.closeQuestionListModal();
+        showQuestionAtIndex(idx);
+      }
+    );
+    window.QuizUI.openQuestionListModal();
+  });
+
+  document.getElementById('btn-close-question-list').addEventListener('click', () => {
+    window.QuizUI.closeQuestionListModal();
+  });
+
+  // Bấm ra ngoài panel (vùng overlay tối) cũng đóng menu.
+  document.getElementById('question-list-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'question-list-modal') {
+      window.QuizUI.closeQuestionListModal();
+    }
+  });
+
+  // Banner "Đang xem lại" -> quay về đúng câu đang làm thật.
+  document.getElementById('btn-review-back-live').addEventListener('click', () => {
+    showQuestionAtIndex(engine.getCurrentIndex());
+  });
+
+  /** Lấy toàn bộ câu trong phiên hiện tại (0..total-1) để hiển thị menu. */
+  function sessionSnapshot() {
+    const total = engine.getSessionLength();
+    const arr = [];
+    for (let i = 0; i < total; i++) {
+      arr.push(engine.getQuestionAt(i));
+    }
+    return arr;
+  }
 
 })();

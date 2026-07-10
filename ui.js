@@ -174,6 +174,118 @@
     setTimeout(onDone, FEEDBACK_DELAY_MS);
   }
 
+  // ---------------- Coi lại câu hỏi (review mode) ----------------
+
+  /**
+   * Render danh sách đáp án ở chế độ CHỈ XEM (đã trả lời trước đó):
+   * - Đáp án đúng luôn tô xanh lá.
+   * - Đáp án người dùng đã chọn sai (nếu có) tô đỏ.
+   * - Tất cả nút đều bị vô hiệu hoá (không cho bấm).
+   */
+  function renderReviewOptions(question) {
+    const optionsContainer = document.getElementById('quiz-options');
+    optionsContainer.innerHTML = '';
+
+    const opts = question.reviewOptions || question.options;
+    const correctIdx = question.reviewOptions ? question.reviewCorrectIndex : question.correctIndex;
+    const selectedIdx = question.reviewOptions ? question.reviewSelectedIndex : null;
+
+    opts.forEach((text, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.type = 'button';
+      btn.disabled = true;
+      btn.textContent = `${String.fromCharCode(65 + idx)}. ${text}`;
+
+      if (idx === correctIdx) {
+        btn.classList.add('review-correct');
+      }
+      if (selectedIdx !== null && idx === selectedIdx && selectedIdx !== correctIdx) {
+        btn.classList.add('review-wrong');
+      }
+
+      optionsContainer.appendChild(btn);
+    });
+
+    const feedbackEl = document.getElementById('quiz-feedback');
+    feedbackEl.hidden = false;
+    const wasCorrect = question.attempted ? question.firstAttemptCorrect : null;
+    feedbackEl.className = 'feedback ' + (wasCorrect === false ? 'wrong' : 'correct');
+    feedbackEl.textContent = wasCorrect === false
+      ? 'Bạn đã chọn sai ở lần trả lời đầu tiên.'
+      : 'Bạn đã trả lời đúng.';
+  }
+
+  /**
+   * Render 1 câu hỏi ở chế độ coi lại (read-only).
+   * @param {Object} progress - { current, total, correctSoFar, liveCurrent }
+   *   current: số thứ tự câu ĐANG XEM (1-based)
+   *   liveCurrent: số thứ tự câu ĐANG LÀM THẬT trong phiên (1-based), dùng để
+   *   thanh tiến trình không bị lùi lại khi người dùng chỉ đang coi lại.
+   */
+  function renderQuestionReview(question, progress) {
+    document.getElementById('quiz-progress-text').textContent =
+      `Câu ${progress.current} / ${progress.total} · Đang xem lại`;
+    document.getElementById('quiz-score-live').textContent = `${progress.correctSoFar} đúng`;
+    document.getElementById('progress-bar-fill').style.width =
+      `${Math.round(((progress.liveCurrent - 1) / progress.total) * 100)}%`;
+
+    document.getElementById('quiz-question-text').textContent = question.content;
+    renderReviewOptions(question);
+  }
+
+  /** Ẩn/hiện nút "<-" và banner "đang xem lại", tuỳ theo vị trí đang xem. */
+  function updateQuizNav(viewedIndex, liveIndex) {
+    const backBtn = document.getElementById('btn-quiz-back');
+    backBtn.hidden = viewedIndex <= 0;
+
+    const banner = document.getElementById('quiz-review-banner');
+    banner.hidden = viewedIndex === liveIndex;
+  }
+
+  /**
+   * Render lưới các câu trong menu "coi lại câu hỏi".
+   * Câu đã qua (đúng): xanh lá. Câu đã qua (sai lần đầu, cuối cùng vẫn phải
+   * trả lời đúng mới qua): đỏ viền + số, vẫn bấm được để xem lại đáp án đã
+   * chọn sai. Câu đang làm: viền accent. Câu chưa tới: khoá, không bấm được.
+   */
+  function renderQuestionListMenu(sessionQuestions, liveIndex, onSelect) {
+    const grid = document.getElementById('question-list-grid');
+    grid.innerHTML = '';
+
+    sessionQuestions.forEach((q, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'qlist-item';
+      btn.textContent = String(idx + 1);
+
+      const reached = idx <= liveIndex;
+
+      if (!reached) {
+        btn.classList.add('qlist-locked');
+        btn.disabled = true;
+      } else if (idx === liveIndex) {
+        btn.classList.add('qlist-current');
+      } else if (q.attempted) {
+        btn.classList.add(q.firstAttemptCorrect ? 'qlist-correct' : 'qlist-wrong');
+      }
+
+      if (reached) {
+        btn.addEventListener('click', () => onSelect(idx));
+      }
+
+      grid.appendChild(btn);
+    });
+  }
+
+  function openQuestionListModal() {
+    document.getElementById('question-list-modal').hidden = false;
+  }
+
+  function closeQuestionListModal() {
+    document.getElementById('question-list-modal').hidden = true;
+  }
+
   function renderResult(final) {
     document.getElementById('result-score').textContent = final.score;
     document.getElementById('result-detail').textContent =
@@ -192,7 +304,12 @@
     renderQuestion,
     renderOptionsList,
     showAnswerFeedback,
-    renderResult
+    renderResult,
+    renderQuestionReview,
+    updateQuizNav,
+    renderQuestionListMenu,
+    openQuestionListModal,
+    closeQuestionListModal
   };
   global.QuizUI = api;
 })(typeof window !== 'undefined' ? window : globalThis);

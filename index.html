@@ -85,11 +85,37 @@
         <div class="progress-bar"><div id="progress-bar-fill" class="progress-bar-fill"></div></div>
       </div>
 
+      <div id="quiz-review-banner" class="review-banner" hidden>
+        <span>Đang xem lại câu đã làm</span>
+        <button id="btn-review-back-live" type="button" class="review-back-live">Về câu đang làm</button>
+      </div>
+
       <h2 id="quiz-question-text" class="question-text"></h2>
 
       <div id="quiz-options" class="options-list"></div>
 
       <div id="quiz-feedback" class="feedback" hidden></div>
+    </div>
+
+    <!-- Nút tua lại 1 câu (góc dưới trái) và mở danh sách câu đã làm (góc dưới phải) -->
+    <button id="btn-quiz-back" type="button" class="quiz-fab quiz-fab-left" title="Câu trước" hidden>←</button>
+    <button id="btn-quiz-list" type="button" class="quiz-fab quiz-fab-right" title="Xem tất cả câu">☰</button>
+
+    <div id="question-list-modal" class="modal-overlay" hidden>
+      <div class="modal-panel">
+        <div class="modal-header">
+          <h3>Danh sách câu hỏi</h3>
+          <button id="btn-close-question-list" type="button" class="modal-close">✕</button>
+        </div>
+        <p class="modal-hint">Bấm vào 1 câu để xem lại. Câu màu xám chưa làm tới, chưa xem được.</p>
+        <div id="question-list-grid" class="question-list-grid"></div>
+        <div class="modal-legend">
+          <span><i class="legend-dot legend-correct"></i>Đúng</span>
+          <span><i class="legend-dot legend-wrong"></i>Sai lần đầu</span>
+          <span><i class="legend-dot legend-current"></i>Đang làm</span>
+          <span><i class="legend-dot legend-locked"></i>Chưa tới</span>
+        </div>
+      </div>
     </div>
   </section>
 

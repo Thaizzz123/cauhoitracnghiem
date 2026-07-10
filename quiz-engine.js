@@ -102,6 +102,15 @@
       if (!q.attempted) {
         q.attempted = true;
         q.firstAttemptCorrect = correct;
+        // Đóng băng lại đúng trạng thái hiển thị (thứ tự đáp án + đáp án đã
+        // chọn + đáp án đúng) tại thời điểm trả lời LẦN ĐẦU, phục vụ tính
+        // năng "coi lại câu hỏi". Nếu sau đó câu này bị xáo lại (do trả lời
+        // sai, xem reshuffleCurrentQuestion), các trường review* này KHÔNG
+        // đổi theo — màn hình coi lại luôn hiển thị đúng như lúc người dùng
+        // thực sự đã bấm chọn ở lần đầu tiên.
+        q.reviewOptions = q.options.slice();
+        q.reviewCorrectIndex = q.correctIndex;
+        q.reviewSelectedIndex = selectedIndex;
         if (correct) {
           state.correctCount++;
         } else {
@@ -162,6 +171,25 @@
       return state.bank;
     }
 
+    /** Chỉ số (0-based) của câu đang làm hiện tại trong phiên. */
+    function getCurrentIndex() {
+      return state.currentIndex;
+    }
+
+    /** Tổng số câu trong phiên làm bài hiện tại. */
+    function getSessionLength() {
+      return state.sessionQuestions.length;
+    }
+
+    /**
+     * Lấy câu hỏi tại vị trí bất kỳ trong phiên (dùng để coi lại các câu đã
+     * qua). Trả về object đã có sẵn reviewOptions/reviewCorrectIndex/
+     * reviewSelectedIndex (nếu câu đó đã từng được trả lời).
+     */
+    function getQuestionAt(index) {
+      return state.sessionQuestions[index] || null;
+    }
+
     return {
       setBank,
       startSession,
@@ -170,7 +198,10 @@
       submitAnswer,
       reshuffleCurrentQuestion,
       getFinalResult,
-      getBank
+      getBank,
+      getCurrentIndex,
+      getSessionLength,
+      getQuestionAt
     };
   }
 
