@@ -34,6 +34,15 @@
  *    "A." "B." "C." "D." (cho phép dấu . ) hoặc : ngay sau chữ cái).
  *  - Nếu một câu không đủ 4 mốc A/B/C/D, hoặc không có đúng 1 dấu *,
  *    câu đó sẽ bị BÁO LỖI RÕ RÀNG chứ không tự đoán bừa đáp án đúng.
+ *  - TỰ ĐỘNG LỌC NHIỄU tiêu đề/mô tả/lời cảm ơn... (thường gặp khi copy
+ *    nguyên cả file đề thi, có dòng giới thiệu ở đầu hoặc ghi chú ở cuối):
+ *      + Nếu 1 khối bị lỗi mà KHÔNG tìm thấy cả mốc "A." nào — tức chắc
+ *        chắn không phải câu hỏi thật (câu hỏi thật luôn có đáp án A) —
+ *        hệ thống tự bỏ qua, không báo lỗi giả cho người dùng.
+ *      + Nếu nội dung 1 đáp án có dòng trống ở giữa (ngắt đoạn), chỉ lấy
+ *        đoạn văn bản đầu tiên làm nội dung thật; phần sau dòng trống
+ *        (thường là ghi chú/lời cảm ơn dán liền cuối đáp án D của câu
+ *        cuối cùng, do không có mốc "Câu" mới để tách riêng) bị cắt bỏ.
  * ------------------------------------------------------------------
  */
 
@@ -87,7 +96,13 @@
 
       if (!match) {
         return {
-          error: `Thiếu đáp án "${letter}." (không tìm thấy mốc "${letter}." trong câu này).`
+          error: `Thiếu đáp án "${letter}." (không tìm thấy mốc "${letter}." trong câu này).`,
+          // Nếu ngay cả mốc "A." cũng không tìm thấy trong TOÀN BỘ block, gần
+          // như chắc chắn đây không phải 1 câu hỏi thật bị lỗi định dạng, mà
+          // chỉ là văn bản linh tinh lọt vào (tiêu đề, mô tả, ghi chú...) vô
+          // tình chứa chữ "Câu <số>" trùng với nhãn nhận diện. Một câu hỏi
+          // được gõ thật, dù sai định dạng B/C/D, hầu như luôn còn đáp án A.
+          likelyNoise: letter === 'A'
         };
       }
 
@@ -121,7 +136,16 @@
       const start = positions[i].end;
       const end = i < positions.length - 1 ? positions[i + 1].start : block.length;
       const rawOptionText = block.slice(start, end);
-      const optionText = normalizeWhitespace(rawOptionText);
+
+      // Nếu nội dung đáp án có DÒNG TRỐNG (ngắt đoạn) ở giữa, chỉ lấy đoạn
+      // văn bản ĐẦU TIÊN trước dòng trống đó làm nội dung thật; phần phía
+      // sau bị cắt bỏ. Trường hợp hay gặp nhất: đáp án D của CÂU CUỐI CÙNG
+      // trong file/nguồn — sau khi hết nội dung câu trả lời thật, nếu file
+      // còn dòng tiêu đề phần tiếp theo, lời cảm ơn, ghi chú nguồn... dán
+      // liền phía dưới (không có mốc "Câu" mới để tách ra thành block riêng)
+      // thì đoạn đó sẽ vô tình bị gộp vào nội dung đáp án D nếu không cắt.
+      const firstParagraph = rawOptionText.split(/\n\s*\n/)[0];
+      const optionText = normalizeWhitespace(firstParagraph);
 
       if (!optionText) {
         return { error: `Đáp án "${positions[i].letter}." bị trống nội dung.` };
@@ -200,9 +224,23 @@
       const parsed = parseQuestionBlock(block);
 
       if (parsed.error) {
+        // Bỏ qua ÂM THẦM (không báo lỗi) nếu:
+        //  a) parseQuestionBlock xác định đây gần như chắc chắn không phải
+        //     câu hỏi thật (likelyNoise — không có cả mốc "A."), HOẶC
+        //  b) block quá ngắn một cách bất thường (lưới an toàn phụ, phòng
+        //     trường hợp lạ chưa lường hết).
+        // Đây là các trường hợp: tiêu đề đầu file, mô tả, lời cảm ơn/ghi chú
+        // cuối file... vô tình chứa chữ "Câu <số>" trùng nhãn nhận diện,
+        // KHÔNG phải lỗi định dạng thật của người dùng cần cảnh báo.
+        const MIN_MEANINGFUL_BLOCK_LENGTH = 20;
+        const normalizedBlock = normalizeWhitespace(block).trim();
+        if (parsed.likelyNoise || normalizedBlock.length < MIN_MEANINGFUL_BLOCK_LENGTH) {
+          continue;
+        }
+
         result.errors.push({
           number: i + 1, // vị trí xuất hiện thứ mấy trong văn bản gốc (chỉ để định vị lỗi)
-          snippet: normalizeWhitespace(block).slice(0, 100),
+          snippet: normalizedBlock.slice(0, 100),
           reason: parsed.error
         });
         continue;

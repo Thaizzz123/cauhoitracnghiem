@@ -30,7 +30,7 @@
       <textarea id="input-textarea" placeholder="Câu 1: Thủ đô của Việt Nam là gì?&#10;A. Hồ Chí Minh&#10;*B. Hà Nội&#10;C. Đà Nẵng&#10;D. Huế"></textarea>
 
       <div class="file-upload-zone">
-        <div class="field-label">Hoặc tải file lên (.txt)</div>
+        <div class="field-label">Hoặc tải file lên (.txt / .docx)</div>
         <p class="file-upload-hint">
           Nội dung file phải theo đúng định dạng "Câu ... / A. / B. / C. / D." như trên.
           Chọn được nhiều file cùng lúc, hoặc bấm chọn nhiều lần — file nào tải lên
@@ -39,7 +39,7 @@
         <label for="input-file" class="file-upload-btn">
           <span>Chọn file...</span>
         </label>
-        <input type="file" id="input-file" accept=".txt,text/plain" multiple hidden>
+        <input type="file" id="input-file" accept=".txt,text/plain,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple hidden>
         <div id="file-list" class="file-list"></div>
       </div>
 
@@ -113,6 +113,7 @@
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.11.0/mammoth.browser.min.js"></script>
 <script src="parser.js"></script>
 <script src="shuffle.js"></script>
 <script src="quiz-engine.js"></script>

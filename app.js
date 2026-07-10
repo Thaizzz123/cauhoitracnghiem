@@ -128,13 +128,54 @@
     reRenderFileList();
   }
 
-  function readFileAsText(file) {
+  function isDocxFile(file) {
+    const nameLower = (file.name || '').toLowerCase();
+    return nameLower.endsWith('.docx') ||
+      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  }
+
+  function readFileAsArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('Không đọc được nội dung file.'));
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function readFileAsPlainText(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ''));
       reader.onerror = () => reject(new Error('Không đọc được nội dung file.'));
       reader.readAsText(file, 'UTF-8');
     });
+  }
+
+  /**
+   * Đọc nội dung 1 file thành văn bản thuần để đưa vào parser:
+   *  - File .docx: giải nén bằng mammoth.js (đọc trực tiếp arrayBuffer, không
+   *    cần convert tay sang .txt trước). File .docx thực chất là 1 file zip,
+   *    nếu đọc thẳng như text thuần sẽ ra toàn ký tự rác (mở đầu bằng "PK"),
+   *    nên bắt buộc phải qua bước giải nén này.
+   *  - File .txt (hoặc bất kỳ file text nào khác): đọc thẳng như trước.
+   */
+  function readFileContent(file) {
+    if (isDocxFile(file)) {
+      if (typeof window.mammoth === 'undefined') {
+        return Promise.reject(new Error(
+          'Chưa tải được thư viện đọc file .docx (có thể do mất mạng). Thử lại hoặc dùng file .txt.'
+        ));
+      }
+      return readFileAsArrayBuffer(file).then(arrayBuffer =>
+        window.mammoth.extractRawText({ arrayBuffer })
+          .then(result => result.value)
+          .catch(() => {
+            throw new Error('File .docx bị lỗi hoặc không đúng định dạng Word, không đọc được nội dung.');
+          })
+      );
+    }
+    return readFileAsPlainText(file);
   }
 
   function handleFilesSelected(fileList) {
@@ -154,7 +195,7 @@
       // và do đó được đánh số câu hỏi trước khi gộp nguồn ở goToConfigScreen.
       uploadedFiles.push(entry);
 
-      readFileAsText(file)
+      readFileContent(file)
         .then(text => {
           entry.status = 'ready';
           entry.text = text;
