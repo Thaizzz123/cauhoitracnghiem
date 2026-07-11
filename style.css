@@ -677,6 +677,19 @@ code {
 .legend-dot.legend-current { background: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
 .legend-dot.legend-locked { background: var(--text-muted); opacity: 0.5; }
 
+/* Sửa lỗi quan trọng: các class trên set "display: flex" thẳng vào chính
+   phần tử, nên khi JS gán hidden = true (thuộc tính HTML "hidden"), CSS mặc
+   định của trình duyệt [hidden]{display:none} bị các luật .review-banner /
+   .quiz-fab / .modal-overlay (có độ đặc hiệu cao hơn vì là author CSS) đè
+   mất, khiến phần tử KHÔNG BAO GIỜ thực sự ẩn đi được (menu "Danh sách câu
+   hỏi" bị kẹt, không tắt được). Thêm luật [hidden] ngay sau, với độ đặc hiệu
+   cao hơn (class + attribute), để đảm bảo hidden luôn thắng. */
+.review-banner[hidden],
+.quiz-fab[hidden],
+.modal-overlay[hidden] {
+  display: none;
+}
+
 /* ---------- Result screen ---------- */
 .result-card {
   text-align: center;
