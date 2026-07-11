@@ -6,6 +6,7 @@
   --field-bg: #0a141c;
   --border: #1c2e3d;
   --accent: #35ffa0;
+  --accent-text: var(--accent);
   --accent-dim: #1a6b4c;
   --accent-bg: rgba(53, 255, 160, 0.09);
   --danger: #ff5d5d;
@@ -28,6 +29,7 @@
   --field-bg: #f6f8fa;
   --border: #d8e0e6;
   --accent: #0e9e63;
+  --accent-text: var(--heading);
   --accent-dim: #0b7a4e;
   --accent-bg: rgba(14, 158, 99, 0.10);
   --danger: #d63a3a;
@@ -36,6 +38,32 @@
   --text-muted: #6a7d87;
   --heading: #0f1a20;
   color-scheme: light;
+}
+
+/* Giao diện sáng: chữ đậm hơn hẳn để dễ đọc trên nền sáng (thay vì mảnh như
+   trên nền tối). Đặt ở body để mọi chữ thường (câu hỏi, đáp án, nhãn...) kế
+   thừa, riêng các phần tử vốn đã tự đặt font-weight (nút, tiêu đề...) được
+   tăng thêm 1 bậc so với bản gốc. */
+:root[data-theme="light"] body {
+  font-weight: 500;
+}
+
+:root[data-theme="light"] h1,
+:root[data-theme="light"] h2,
+:root[data-theme="light"] h3,
+:root[data-theme="light"] .btn,
+:root[data-theme="light"] .feedback,
+:root[data-theme="light"] .chip,
+:root[data-theme="light"] .option-btn,
+:root[data-theme="light"] .score-live,
+:root[data-theme="light"] .score-number,
+:root[data-theme="light"] .review-banner,
+:root[data-theme="light"] .review-back-live,
+:root[data-theme="light"] .qlist-item,
+:root[data-theme="light"] .eyebrow,
+:root[data-theme="light"] .field-label,
+:root[data-theme="light"] .question-text {
+  font-weight: 700;
 }
 
 * {
@@ -103,7 +131,7 @@ body {
 .eyebrow {
   font-family: var(--mono);
   font-size: 0.75rem;
-  color: var(--accent);
+  color: var(--accent-text);
   letter-spacing: 0.15em;
   text-transform: uppercase;
   margin-bottom: 8px;
@@ -174,7 +202,7 @@ code {
 
 .btn-secondary:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .button-row {
@@ -240,7 +268,7 @@ code {
   gap: 8px;
   border: 1px solid var(--border);
   background: var(--field-bg);
-  color: var(--accent);
+  color: var(--accent-text);
   padding: 9px 16px;
   border-radius: 8px;
   font-size: 0.88rem;
@@ -274,7 +302,7 @@ code {
 
 .file-item-order {
   font-family: var(--mono);
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 0.78rem;
   flex-shrink: 0;
   min-width: 20px;
@@ -422,7 +450,7 @@ code {
 
 .chip.active {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-bg);
 }
 
@@ -442,7 +470,7 @@ code {
 }
 
 .score-live {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .progress-bar {
@@ -496,7 +524,7 @@ code {
 .option-btn.selected-correct {
   background: var(--accent-bg);
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .option-btn.selected-wrong {
@@ -516,7 +544,7 @@ code {
 
 .feedback.correct {
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .feedback.wrong {
@@ -527,7 +555,7 @@ code {
 .option-btn.review-correct {
   background: var(--accent-bg);
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .option-btn.review-wrong {
@@ -549,7 +577,7 @@ code {
   gap: 10px;
   background: var(--accent-bg);
   border: 1px solid var(--accent-dim);
-  color: var(--accent);
+  color: var(--accent-text);
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 0.82rem;
@@ -560,7 +588,7 @@ code {
 .review-back-live {
   border: 1px solid var(--accent);
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-text);
   border-radius: 6px;
   padding: 5px 10px;
   font-size: 0.78rem;
@@ -584,7 +612,7 @@ code {
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--panel-2);
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 1.15rem;
   display: flex;
   align-items: center;
@@ -711,13 +739,13 @@ code {
 
 .qlist-item.qlist-current {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-bg);
 }
 
 .qlist-item.qlist-correct {
   border-color: var(--accent-dim);
-  color: var(--accent);
+  color: var(--accent-text);
   background: rgba(53, 255, 160, 0.06);
 }
 
@@ -783,7 +811,7 @@ code {
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--panel-2);
-  color: var(--accent);
+  color: var(--accent-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -849,7 +877,7 @@ code {
   font-family: var(--mono);
   font-size: 3rem;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .score-unit {
