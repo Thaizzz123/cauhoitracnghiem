@@ -103,7 +103,7 @@
    * Bóc tách 1 khối văn bản (nội dung sau nhãn "Câu N") thành:
    * { content, options: [text,text,text,text], correctIndex, error }
    */
-  function parseQuestionBlock(block) {
+  function parseQuestionBlock(block, isLastBlock) {
     // Nếu cả block hoàn toàn không có newline nào (viết liền 1 dòng), không
     // có "đầu dòng" nào để dựa vào -> dùng bản LỎNG (không yêu cầu đầu dòng).
     // Ngược lại (có cấu trúc newline rõ ràng, là trường hợp phổ biến nhất
@@ -175,12 +175,20 @@
 
       // Nếu nội dung đáp án có DÒNG TRỐNG (ngắt đoạn) ở giữa, chỉ lấy đoạn
       // văn bản ĐẦU TIÊN trước dòng trống đó làm nội dung thật; phần phía
-      // sau bị cắt bỏ. Trường hợp hay gặp nhất: đáp án D của CÂU CUỐI CÙNG
-      // trong file/nguồn — sau khi hết nội dung câu trả lời thật, nếu file
-      // còn dòng tiêu đề phần tiếp theo, lời cảm ơn, ghi chú nguồn... dán
-      // liền phía dưới (không có mốc "Câu" mới để tách ra thành block riêng)
-      // thì đoạn đó sẽ vô tình bị gộp vào nội dung đáp án D nếu không cắt.
-      const firstParagraph = rawOptionText.split(/\n\s*\n/)[0];
+      // sau bị cắt bỏ. Áp dụng cho MỌI đáp án (an toàn vì dòng trống hiếm
+      // khi xuất hiện giữa 1 đáp án hợp lệ).
+      //
+      // RIÊNG đáp án D của BLOCK CUỐI CÙNG trong toàn văn bản: đây là điểm
+      // DUY NHẤT có nguy cơ dính rác (tiêu đề phần sau, lời cảm ơn, ghi chú
+      // nguồn...) mà KHÔNG có mốc "Câu" mới theo sau để tách ra block riêng.
+      // Rác dạng này trong thực tế thường chỉ cách đáp án D bằng 1 dòng đơn
+      // (không phải dòng trống), nên với riêng trường hợp này ta cắt luôn ở
+      // dòng đơn đầu tiên. Không áp dụng cho các đáp án khác / block khác vì
+      // chúng có thể là 1 đáp án hợp lệ bị wrap tự nhiên qua 2 dòng — cắt ở
+      // dòng đơn tại đó sẽ làm mất nội dung thật.
+      const isLastOptionOfLastBlock = isLastBlock && i === positions.length - 1;
+      const paragraphSplitRegex = isLastOptionOfLastBlock ? /\n/ : /\n\s*\n/;
+      const firstParagraph = rawOptionText.split(paragraphSplitRegex)[0];
       const optionText = normalizeWhitespace(firstParagraph);
 
       if (!optionText) {
@@ -257,7 +265,8 @@
       const block = rawText.slice(blockStart, blockEnd);
       const originalNumber = markMatches[i][1] ? parseInt(markMatches[i][1], 10) : null;
 
-      const parsed = parseQuestionBlock(block);
+      const isLastBlock = i === markMatches.length - 1;
+      const parsed = parseQuestionBlock(block, isLastBlock);
 
       if (parsed.error) {
         // Bỏ qua ÂM THẦM (không báo lỗi) nếu:

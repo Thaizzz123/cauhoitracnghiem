@@ -150,8 +150,23 @@
       selectedCount = count;
     });
     selectedMode = 'shuffle';
+    resetModeChipToShuffle();
 
     showScreen('screen-config');
+  }
+
+  /**
+   * Đồng bộ lại chip "Chế độ" về "Ngẫu nhiên" (khớp với việc selectedMode bị
+   * reset về 'shuffle' mỗi lần vào lại màn cấu hình từ đầu). Nếu không làm
+   * bước này, chip DOM (tĩnh, không tự re-render) có thể vẫn đang hiển thị
+   * lựa chọn "Theo thứ tự" từ lượt trước đó, gây lệch giữa những gì người
+   * dùng THẤY và mode THẬT SỰ sẽ chạy khi bấm "Bắt đầu".
+   */
+  function resetModeChipToShuffle() {
+    const modeRow = document.getElementById('mode-row');
+    modeRow.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    const shuffleChip = modeRow.querySelector('.chip[data-mode="shuffle"]');
+    if (shuffleChip) shuffleChip.classList.add('active');
   }
 
   function beginQuizFromConfig() {
