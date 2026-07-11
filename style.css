@@ -371,6 +371,14 @@ code {
   margin: 0 0 22px;
 }
 
+/* Cùng loại lỗi đã gặp trước đây: "display: flex" ở trên đè mất
+   [hidden]{display:none} mặc định của trình duyệt, khiến ô "Tự nhập số câu"
+   luôn hiện sẵn dù chưa bấm chọn nó. Thêm luật [hidden] có độ đặc hiệu cao
+   hơn để đảm bảo ẩn/hiện đúng theo đúng chip đang được chọn. */
+.count-custom-wrap[hidden] {
+  display: none;
+}
+
 .count-custom-input {
   width: 120px;
   font-family: var(--mono);
