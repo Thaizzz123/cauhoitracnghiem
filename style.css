@@ -1,7 +1,9 @@
 :root {
   --bg: #060a10;
+  --bg-glow: #0d2030;
   --panel: #0d1620;
   --panel-2: #101d29;
+  --field-bg: #0a141c;
   --border: #1c2e3d;
   --accent: #35ffa0;
   --accent-dim: #1a6b4c;
@@ -10,9 +12,30 @@
   --danger-bg: rgba(255, 93, 93, 0.1);
   --text: #d7e6ea;
   --text-muted: #6e8a94;
+  --heading: #ffffff;
   --radius: 12px;
   --mono: 'SF Mono', 'JetBrains Mono', Consolas, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color-scheme: dark;
+}
+
+/* ---------- Giao diện SÁNG (bấm nút mặt trời / mặt trăng để đổi) ---------- */
+:root[data-theme="light"] {
+  --bg: #eef2f5;
+  --bg-glow: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f3f6f8;
+  --field-bg: #f6f8fa;
+  --border: #d8e0e6;
+  --accent: #0e9e63;
+  --accent-dim: #0b7a4e;
+  --accent-bg: rgba(14, 158, 99, 0.10);
+  --danger: #d63a3a;
+  --danger-bg: rgba(214, 58, 58, 0.09);
+  --text: #26343c;
+  --text-muted: #6a7d87;
+  --heading: #0f1a20;
+  color-scheme: light;
 }
 
 * {
@@ -27,11 +50,12 @@ html, body {
 
 body {
   background:
-    radial-gradient(ellipse at 50% -10%, #0d2030 0%, transparent 60%),
+    radial-gradient(ellipse at 50% -10%, var(--bg-glow) 0%, transparent 60%),
     var(--bg);
   color: var(--text);
   font-family: var(--sans);
   line-height: 1.5;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 .radar-bg {
@@ -73,6 +97,7 @@ body {
   padding: 32px 28px;
   width: 100%;
   max-width: 560px;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 .eyebrow {
@@ -87,13 +112,13 @@ body {
 h1 {
   font-size: 1.6rem;
   margin: 0 0 8px;
-  color: #fff;
+  color: var(--heading);
 }
 
 h2 {
   font-size: 1.3rem;
   margin: 0 0 8px;
-  color: #fff;
+  color: var(--heading);
 }
 
 .subtitle {
@@ -108,7 +133,7 @@ h2 {
 }
 
 code {
-  background: #0a141c;
+  background: var(--field-bg);
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 1px 5px;
@@ -183,7 +208,7 @@ code {
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 0.9rem;
   color: var(--text);
-  background: #0a141c;
+  background: var(--field-bg);
 }
 
 #input-textarea::placeholder {
@@ -214,7 +239,7 @@ code {
   align-items: center;
   gap: 8px;
   border: 1px solid var(--border);
-  background: #0a141c;
+  background: var(--field-bg);
   color: var(--accent);
   padding: 9px 16px;
   border-radius: 8px;
@@ -241,7 +266,7 @@ code {
   align-items: center;
   gap: 10px;
   border: 1px solid var(--border);
-  background: #0a141c;
+  background: var(--field-bg);
   border-radius: 8px;
   padding: 9px 12px;
   font-size: 0.85rem;
@@ -351,7 +376,7 @@ code {
   font-family: var(--mono);
   font-size: 0.9rem;
   border: 1.5px solid var(--accent-dim);
-  background: #0a141c;
+  background: var(--field-bg);
   color: var(--text);
   padding: 9px 12px;
   border-radius: 6px;
@@ -375,7 +400,7 @@ code {
   font-family: var(--mono);
   font-size: 0.85rem;
   border: 1px solid var(--border);
-  background: #0a141c;
+  background: var(--field-bg);
   color: var(--text-muted);
   padding: 9px 16px;
   border-radius: 6px;
@@ -431,7 +456,7 @@ code {
   font-size: 1.15rem;
   margin-bottom: 20px;
   line-height: 1.45;
-  color: #fff;
+  color: var(--heading);
 }
 
 .options-list {
@@ -442,7 +467,7 @@ code {
 
 .option-btn {
   text-align: left;
-  background: #0a141c;
+  background: var(--field-bg);
   border: 1.5px solid var(--border);
   border-radius: 8px;
   padding: 13px 16px;
@@ -630,7 +655,7 @@ code {
 .modal-header h3 {
   margin: 0;
   font-size: 1.05rem;
-  color: #fff;
+  color: var(--heading);
 }
 
 .modal-close {
@@ -663,7 +688,7 @@ code {
   aspect-ratio: 1;
   border-radius: 8px;
   border: 1.5px solid var(--border);
-  background: #0a141c;
+  background: var(--field-bg);
   color: var(--text-muted);
   font-family: var(--mono);
   font-size: 0.85rem;
@@ -737,6 +762,70 @@ code {
 .review-banner[hidden],
 .quiz-fab[hidden] {
   display: none;
+}
+
+/* ---------- Nút đổi giao diện sáng / tối ---------- */
+.theme-toggle {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 40;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 24px -10px rgba(0,0,0,0.6);
+  transition: border-color 0.15s ease, transform 0.05s ease, background-color 0.25s ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+}
+
+.theme-toggle:active {
+  transform: scale(0.92);
+}
+
+.theme-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Mặc định (giao diện tối): hiện mặt trăng, ẩn mặt trời. */
+.theme-icon-sun {
+  display: none;
+}
+
+.theme-icon-moon {
+  display: block;
+}
+
+/* Giao diện sáng: hiện mặt trời, ẩn mặt trăng. */
+:root[data-theme="light"] .theme-icon-sun {
+  display: block;
+}
+
+:root[data-theme="light"] .theme-icon-moon {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .theme-toggle {
+    top: 12px;
+    right: 12px;
+    width: 38px;
+    height: 38px;
+  }
+  .theme-icon {
+    width: 17px;
+    height: 17px;
+  }
 }
 
 /* ---------- Result screen ---------- */

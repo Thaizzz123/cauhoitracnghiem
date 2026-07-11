@@ -263,6 +263,21 @@
 
 
 
+  // ---------------- Đổi giao diện sáng / tối ----------------
+  const THEME_STORAGE_KEY = 'quiz-theme-preference';
+
+  document.getElementById('btn-theme-toggle').addEventListener('click', () => {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const next = isLight ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch (e) {
+      // localStorage bị chặn (vd chế độ ẩn danh) -> đổi giao diện vẫn hoạt
+      // động bình thường cho phiên hiện tại, chỉ là không lưu lại được.
+    }
+  });
+
   document.getElementById('btn-go-input').addEventListener('click', () => {
     showScreen('screen-input');
   });

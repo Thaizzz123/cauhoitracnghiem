@@ -4,11 +4,45 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ôn Tập Trắc Nghiệm</title>
+<script>
+  // Đặt sẵn data-theme lên <html> TRƯỚC khi CSS được áp dụng, để tránh
+  // hiện tượng nháy sai giao diện lúc mới tải trang (vd đang chọn sáng mà
+  // load ra tối 1 nhịp rồi mới đổi lại).
+  (function () {
+    try {
+      var saved = localStorage.getItem('quiz-theme-preference');
+      if (saved === 'light' || saved === 'dark') {
+        document.documentElement.setAttribute('data-theme', saved);
+        return;
+      }
+    } catch (e) { /* localStorage bị chặn (vd chế độ ẩn danh) -> bỏ qua */ }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  })();
+</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="radar-bg"></div>
+
+<button id="btn-theme-toggle" type="button" class="theme-toggle" title="Đổi giao diện sáng / tối" aria-label="Đổi giao diện sáng / tối">
+  <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="4"></circle>
+    <line x1="12" y1="2" x2="12" y2="4"></line>
+    <line x1="12" y1="20" x2="12" y2="22"></line>
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+    <line x1="2" y1="12" x2="4" y2="12"></line>
+    <line x1="20" y1="12" x2="22" y2="12"></line>
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+  </svg>
+  <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+  </svg>
+</button>
 
 <div id="app">
 
