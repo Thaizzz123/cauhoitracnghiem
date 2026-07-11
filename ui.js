@@ -82,15 +82,36 @@
     });
   }
 
-  /** Render danh sách chip chọn số câu hỏi, dựa trên tổng số câu hợp lệ. */
+  /**
+   * Render danh sách chip chọn số câu hỏi, dựa trên tổng số câu hợp lệ.
+   * Ngoài các chip có sẵn (10 câu / 20 câu / Tất cả), luôn có thêm 1 chip
+   * "Tự nhập số câu" — bấm vào sẽ hiện ô nhập số, cho phép chọn số câu bất kỳ
+   * từ 1 đến tổng số câu hợp lệ.
+   */
   function renderCountChips(total, onSelectCount) {
     const container = document.getElementById('count-row');
+    const customWrap = document.getElementById('count-custom-wrap');
+    const customInput = document.getElementById('count-custom-input');
+    const customHint = document.getElementById('count-custom-hint');
+
     container.innerHTML = '';
+    customWrap.hidden = true;
+    customInput.value = '';
+    customInput.max = String(total);
+    customHint.textContent = `Nhập từ 1 đến ${total}.`;
+    customHint.className = 'count-custom-hint';
 
     const options = [];
     if (total > 10) options.push({ label: '10 câu', value: 10 });
     if (total > 20) options.push({ label: '20 câu', value: 20 });
     options.push({ label: `Tất cả (${total})`, value: total });
+
+    const allChips = [];
+
+    function activateChip(chip) {
+      allChips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    }
 
     options.forEach((opt, idx) => {
       const chip = document.createElement('div');
@@ -98,12 +119,59 @@
       chip.textContent = opt.label;
       chip.dataset.count = opt.value;
       chip.addEventListener('click', () => {
-        container.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
+        activateChip(chip);
+        customWrap.hidden = true;
         onSelectCount(opt.value);
       });
+      allChips.push(chip);
       container.appendChild(chip);
     });
+
+    // Chip "Tự nhập số câu" — luôn có, để chọn 1 con số bất kỳ ngoài các mốc
+    // có sẵn (vd tổng đề có 446 câu nhưng chỉ muốn luyện 10 câu, 15 câu...).
+    const customChip = document.createElement('div');
+    customChip.className = 'chip';
+    customChip.textContent = 'Tự nhập số câu';
+    customChip.addEventListener('click', () => {
+      activateChip(customChip);
+      customWrap.hidden = false;
+      customInput.focus();
+    });
+    allChips.push(customChip);
+    container.appendChild(customChip);
+
+    // Dùng .oninput (gán trực tiếp) thay vì addEventListener, vì hàm này có
+    // thể được gọi lại nhiều lần (mỗi lần vào lại màn hình cấu hình) trong
+    // khi ô input KHÔNG bị tạo lại — addEventListener sẽ chồng listener cũ,
+    // còn gán .oninput luôn thay thế đúng 1 listener duy nhất.
+    customInput.oninput = () => {
+      const raw = customInput.value.trim();
+
+      if (raw === '') {
+        customHint.textContent = `Nhập từ 1 đến ${total}.`;
+        customHint.className = 'count-custom-hint';
+        return;
+      }
+
+      let n = parseInt(raw, 10);
+      if (!Number.isFinite(n) || Number.isNaN(n)) {
+        customHint.textContent = 'Số câu không hợp lệ.';
+        customHint.className = 'count-custom-hint error';
+        return;
+      }
+
+      if (n < 1) {
+        n = 1;
+        customInput.value = '1';
+      } else if (n > total) {
+        n = total;
+        customInput.value = String(total);
+      }
+
+      customHint.textContent = `Sẽ luyện tập ${n} câu.`;
+      customHint.className = 'count-custom-hint';
+      onSelectCount(n);
+    };
 
     // Mặc định chọn "Tất cả"
     onSelectCount(total);
@@ -279,11 +347,18 @@
   }
 
   function openQuestionListModal() {
-    document.getElementById('question-list-modal').hidden = false;
+    document.getElementById('question-list-panel').classList.add('qlist-panel-open');
+    document.getElementById('app').classList.add('quiz-list-open');
   }
 
   function closeQuestionListModal() {
-    document.getElementById('question-list-modal').hidden = true;
+    document.getElementById('question-list-panel').classList.remove('qlist-panel-open');
+    document.getElementById('app').classList.remove('quiz-list-open');
+  }
+
+  /** Đang mở khung danh sách câu hỏi hay không (dùng cho logic "bấm ra ngoài để đóng"). */
+  function isQuestionListModalOpen() {
+    return document.getElementById('question-list-panel').classList.contains('qlist-panel-open');
   }
 
   function renderResult(final) {
@@ -309,7 +384,8 @@
     updateQuizNav,
     renderQuestionListMenu,
     openQuestionListModal,
-    closeQuestionListModal
+    closeQuestionListModal,
+    isQuestionListModalOpen
   };
   global.QuizUI = api;
 })(typeof window !== 'undefined' ? window : globalThis);

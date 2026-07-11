@@ -336,7 +336,39 @@ code {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 22px;
+  margin-bottom: 10px;
+}
+
+.count-custom-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 22px;
+}
+
+.count-custom-input {
+  width: 120px;
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  border: 1.5px solid var(--accent-dim);
+  background: #0a141c;
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 6px;
+}
+
+.count-custom-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.count-custom-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.count-custom-hint.error {
+  color: var(--danger);
 }
 
 .chip {
@@ -545,28 +577,47 @@ code {
   right: 20px;
 }
 
-/* ---------- Modal: danh sách câu hỏi ---------- */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  background: rgba(2, 6, 10, 0.72);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
+/* ---------- Khung danh sách câu hỏi: neo bên trái, không che câu hỏi ---------- */
+
+/* #app được đẩy sang phải 1 khoảng đúng bằng bề rộng khung khi khung mở, để
+   nội dung câu hỏi ở giữa KHÔNG BAO GIỜ bị khung danh sách che mất. */
+#app {
+  transition: padding-left 0.22s ease;
 }
 
-.modal-panel {
-  width: 100%;
-  max-width: 560px;
-  max-height: 78vh;
-  overflow-y: auto;
+#app.quiz-list-open {
+  padding-left: 356px;
+}
+
+.qlist-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 336px;
+  max-width: 86vw;
+  z-index: 30;
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
-  border: 1px solid var(--border);
-  border-bottom: none;
-  border-radius: 16px 16px 0 0;
-  padding: 20px 20px 24px;
-  box-shadow: 0 -20px 60px -20px rgba(0,0,0,0.8);
+  border-right: 1px solid var(--border);
+  box-shadow: 24px 0 60px -24px rgba(0,0,0,0.75);
+  padding: 22px 20px 24px;
+  overflow-y: auto;
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.22s ease, opacity 0.18s ease;
+}
+
+.qlist-panel.qlist-panel-open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Khi khung mở, dời nút "←" (vốn nằm góc dưới trái) ra khỏi vùng bị khung
+   che, để vẫn luôn bấm được. */
+#app.quiz-list-open .quiz-fab-left {
+  left: 356px;
 }
 
 .modal-header {
@@ -677,16 +728,14 @@ code {
 .legend-dot.legend-current { background: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
 .legend-dot.legend-locked { background: var(--text-muted); opacity: 0.5; }
 
-/* Sửa lỗi quan trọng: các class trên set "display: flex" thẳng vào chính
-   phần tử, nên khi JS gán hidden = true (thuộc tính HTML "hidden"), CSS mặc
-   định của trình duyệt [hidden]{display:none} bị các luật .review-banner /
-   .quiz-fab / .modal-overlay (có độ đặc hiệu cao hơn vì là author CSS) đè
-   mất, khiến phần tử KHÔNG BAO GIỜ thực sự ẩn đi được (menu "Danh sách câu
-   hỏi" bị kẹt, không tắt được). Thêm luật [hidden] ngay sau, với độ đặc hiệu
-   cao hơn (class + attribute), để đảm bảo hidden luôn thắng. */
+/* Sửa lỗi quan trọng: 1 số class set "display: flex" thẳng vào chính phần
+   tử, nên khi JS gán hidden = true (thuộc tính HTML "hidden"), CSS mặc định
+   của trình duyệt [hidden]{display:none} bị đè mất bởi luật author CSS có độ
+   đặc hiệu cao hơn, khiến phần tử KHÔNG BAO GIỜ thực sự ẩn đi được. Thêm luật
+   [hidden] ngay sau, với độ đặc hiệu cao hơn (class + attribute), để đảm bảo
+   hidden luôn thắng. */
 .review-banner[hidden],
-.quiz-fab[hidden],
-.modal-overlay[hidden] {
+.quiz-fab[hidden] {
   display: none;
 }
 
@@ -721,5 +770,16 @@ code {
   }
   #app {
     padding: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Màn hình hẹp không đủ chỗ để đẩy nội dung sang phải -> để khung danh
+     sách câu hỏi nổi tạm thời lên trên, các nút vẫn giữ nguyên vị trí gốc. */
+  #app.quiz-list-open {
+    padding-left: 0;
+  }
+  #app.quiz-list-open .quiz-fab-left {
+    left: 20px;
   }
 }

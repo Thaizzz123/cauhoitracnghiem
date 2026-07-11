@@ -60,6 +60,10 @@
 
       <div class="field-label">Số câu hỏi</div>
       <div class="chip-row" id="count-row"></div>
+      <div id="count-custom-wrap" class="count-custom-wrap" hidden>
+        <input type="number" id="count-custom-input" class="count-custom-input" min="1" step="1" placeholder="Nhập số câu muốn làm...">
+        <span id="count-custom-hint" class="count-custom-hint"></span>
+      </div>
 
       <div class="field-label">Chế độ</div>
       <div class="chip-row" id="mode-row">
@@ -101,22 +105,22 @@
     <button id="btn-quiz-back" type="button" class="quiz-fab quiz-fab-left" title="Câu trước" hidden>←</button>
     <button id="btn-quiz-list" type="button" class="quiz-fab quiz-fab-right" title="Xem tất cả câu">☰</button>
 
-    <div id="question-list-modal" class="modal-overlay" hidden>
-      <div class="modal-panel">
-        <div class="modal-header">
-          <h3>Danh sách câu hỏi</h3>
-          <button id="btn-close-question-list" type="button" class="modal-close">✕</button>
-        </div>
-        <p class="modal-hint">Bấm vào 1 câu để xem lại. Câu màu xám chưa làm tới, chưa xem được.</p>
-        <div id="question-list-grid" class="question-list-grid"></div>
-        <div class="modal-legend">
-          <span><i class="legend-dot legend-correct"></i>Đúng</span>
-          <span><i class="legend-dot legend-wrong"></i>Sai lần đầu</span>
-          <span><i class="legend-dot legend-current"></i>Đang làm</span>
-          <span><i class="legend-dot legend-locked"></i>Chưa tới</span>
-        </div>
+    <!-- Khung danh sách câu hỏi: neo cố định bên trái màn hình, đẩy nội dung
+         chính sang phải khi mở, để KHÔNG bao giờ đè lên câu hỏi đang xem. -->
+    <aside id="question-list-panel" class="qlist-panel">
+      <div class="modal-header">
+        <h3>Danh sách câu hỏi</h3>
+        <button id="btn-close-question-list" type="button" class="modal-close">✕</button>
       </div>
-    </div>
+      <p class="modal-hint">Bấm vào 1 câu để xem lại. Câu màu xám chưa làm tới, chưa xem được.</p>
+      <div id="question-list-grid" class="question-list-grid"></div>
+      <div class="modal-legend">
+        <span><i class="legend-dot legend-correct"></i>Đúng</span>
+        <span><i class="legend-dot legend-wrong"></i>Sai lần đầu</span>
+        <span><i class="legend-dot legend-current"></i>Đang làm</span>
+        <span><i class="legend-dot legend-locked"></i>Chưa tới</span>
+      </div>
+    </aside>
   </section>
 
   <!-- ============ MÀN HÌNH 5: KẾT QUẢ ============ -->

@@ -338,11 +338,13 @@
     window.QuizUI.closeQuestionListModal();
   });
 
-  // Bấm ra ngoài panel (vùng overlay tối) cũng đóng menu.
-  document.getElementById('question-list-modal').addEventListener('click', (e) => {
-    if (e.target.id === 'question-list-modal') {
-      window.QuizUI.closeQuestionListModal();
-    }
+  // Bấm ra ngoài khung danh sách câu hỏi (và ngoài nút "☰" mở nó) thì tự đóng lại.
+  document.addEventListener('click', (e) => {
+    if (!window.QuizUI.isQuestionListModalOpen()) return;
+    const panel = document.getElementById('question-list-panel');
+    const toggleBtn = document.getElementById('btn-quiz-list');
+    if (panel.contains(e.target) || toggleBtn.contains(e.target)) return;
+    window.QuizUI.closeQuestionListModal();
   });
 
   // Banner "Đang xem lại" -> quay về đúng câu đang làm thật.
