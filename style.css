@@ -908,3 +908,15 @@ code {
     left: 20px;
   }
 }
+
+/* ---------- Điện thoại: nút nổi không che nội dung ---------- */
+@media (max-width: 760px) {
+  /* Chừa chỗ dưới cùng để cuộn tới đáp án cuối mà không bị nút ← / ☰ đè lên. */
+  #screen-quiz {
+    padding-bottom: 84px;
+  }
+  /* Nút đổi giao diện ở góc trên phải không che chữ "x đúng" nữa. */
+  .progress-meta {
+    padding-right: 52px;
+  }
+}

@@ -96,7 +96,12 @@
         // Sai: xáo lại vị trí A/B/C/D của CHÍNH câu này rồi cho chọn lại,
         // để tránh việc chỉ nhớ vị trí thay vì nhớ nội dung đáp án đúng.
         const reshuffled = engine.reshuffleCurrentQuestion();
-        window.QuizUI.renderOptionsList(reshuffled, handleSelectOption);
+        // Nếu trong lúc chờ hiệu ứng, người dùng đã bấm "←" / chọn câu cũ để
+        // xem lại thì KHÔNG vẽ đè bảng đáp án của câu live lên màn hình xem
+        // lại. Khi họ quay về câu live, câu này sẽ tự render theo thứ tự đã xáo.
+        if (viewedIndex === engine.getCurrentIndex()) {
+          window.QuizUI.renderOptionsList(reshuffled, handleSelectOption);
+        }
       }
     });
   }

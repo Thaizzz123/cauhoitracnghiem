@@ -12,6 +12,14 @@
 
   const FEEDBACK_DELAY_MS = 800; // thời gian giữ hiệu ứng đúng/sai trước khi cho phép thao tác tiếp
 
+  /** Escape ký tự HTML để nội dung đề/tên file (vd "p < 0.05") hiển thị đúng nguyên văn. */
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
   function renderErrors(errors) {
     const box = document.getElementById('input-errors');
     if (!errors || errors.length === 0) {
@@ -21,9 +29,9 @@
     }
     const items = errors.map(e => {
       const label = e.number ? `Câu ${e.number}` : 'Lỗi chung';
-      const sourceTag = e.source ? ` <span class="error-source">[${e.source}]</span>` : '';
-      const snippet = e.snippet ? ` — "${e.snippet}${e.snippet.length >= 100 ? '...' : ''}"` : '';
-      return `<li><strong>${label}:</strong>${sourceTag} ${e.reason}${snippet}</li>`;
+      const sourceTag = e.source ? ` <span class="error-source">[${escapeHtml(e.source)}]</span>` : '';
+      const snippet = e.snippet ? ` — "${escapeHtml(e.snippet)}${e.snippet.length >= 100 ? '...' : ''}"` : '';
+      return `<li><strong>${label}:</strong>${sourceTag} ${escapeHtml(e.reason)}${snippet}</li>`;
     }).join('');
     box.innerHTML = `<strong>Phát hiện ${errors.length} lỗi:</strong><ul>${items}</ul>`;
     box.hidden = false;
