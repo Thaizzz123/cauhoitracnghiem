@@ -133,7 +133,24 @@
       .filter(f => f.status === 'ready')
       .forEach(f => sources.push({ label: f.name, text: f.text }));
 
-    const { questions, errors } = window.QuizParser.parseMultipleQuizTexts(sources);
+    let parsedResult;
+    try {
+      if (!window.QuizParser) {
+        throw new Error('Chưa tải được bộ phân tích đề (parser.js). Hãy tải lại trang rồi thử lại.');
+      }
+      parsedResult = window.QuizParser.parseMultipleQuizTexts(sources);
+    } catch (err) {
+      // Trước đây nếu bước này lỗi (vd trình duyệt điện thoại quá cũ) thì nút
+      // "Tiếp tục" im lặng không làm gì. Giờ luôn hiện lý do ra màn hình.
+      window.QuizUI.renderErrors([{
+        number: null,
+        source: '',
+        snippet: '',
+        reason: 'Không xử lý được đề: ' + ((err && err.message) || 'lỗi không xác định') + '.'
+      }]);
+      return;
+    }
+    const { questions, errors } = parsedResult;
 
     window.QuizUI.renderErrors(errors);
 

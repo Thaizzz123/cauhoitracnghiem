@@ -60,9 +60,48 @@
   // lời câu hỏi này").
   //   - Nhánh 1: có số (group 1 = chuỗi số), tuỳ chọn dấu phân cách theo sau
   //   - Nhánh 2: không có số, nhưng bắt buộc có dấu phân cách
-  // (?<![\p{L}]) đảm bảo "Câu" không phải là đuôi của 1 từ khác (phòng xa,
-  // dù trường hợp này rất hiếm với từ "câu" trong tiếng Việt).
-  const QUESTION_MARK_REGEX = /(?<![\p{L}])C[aâ]u\s*(?:(\d+)\s*[:.\-–—)]?|[:.\-–—)])\s*/giu;
+  // Nhãn "Câu" không được là đuôi của 1 từ khác (phòng xa, dù trường hợp này
+  // rất hiếm với từ "câu" trong tiếng Việt) -> kiểm tra bằng isLetterBefore().
+  // LƯU Ý TƯƠNG THÍCH: KHÔNG dùng regex lookbehind (cú pháp mở ngoặc, hỏi, nhỏ hơn) ở bất
+  // kỳ đâu trong file này. Safari iOS dưới 16.4 (và vài webview cũ) không hiểu
+  // cú pháp đó -> cả file parser.js bị lỗi cú pháp lúc tải, khiến nút "Tiếp
+  // tục" trên điện thoại im lặng không làm gì. Điều kiện "ký tự đứng ngay
+  // trước không phải chữ cái" được kiểm tra bằng hàm isLetterBefore() bên dưới.
+  const QUESTION_MARK_PATTERN = 'C[aâ]u\\s*(?:(\\d+)\\s*[:.\\-–—)]?|[:.\\-–—)])\\s*';
+
+  // Nhận biết 1 ký tự là chữ cái (mọi ngôn ngữ). Nếu trình duyệt quá cũ không
+  // hỗ trợ \p{L} thì dùng tạm dải chữ Latin (đủ cho tiếng Việt).
+  let LETTER_AT_END_REGEX;
+  try {
+    LETTER_AT_END_REGEX = new RegExp('\\p{L}$', 'u');
+  } catch (e) {
+    LETTER_AT_END_REGEX = /[A-Za-z\u00C0-\u024F\u1E00-\u1EFF]$/;
+  }
+
+  /** Ký tự (code point) đứng ngay trước vị trí `index` có phải chữ cái không. */
+  function isLetterBefore(str, index) {
+    if (index <= 0) return false;
+    return LETTER_AT_END_REGEX.test(str.slice(Math.max(0, index - 2), index));
+  }
+
+  /**
+   * Tìm mọi nhãn "Câu N" trong văn bản (thay cho matchAll + lookbehind).
+   * Trả về mảng match giống matchAll: m.index, m[0], m[1] (số, nếu có).
+   * Nhãn nằm ngay sau 1 chữ cái (đuôi của từ khác) thì bị bỏ qua.
+   */
+  function findQuestionMarks(text) {
+    const regex = new RegExp(QUESTION_MARK_PATTERN, 'giu');
+    const found = [];
+    let m;
+    while ((m = regex.exec(text)) !== null) {
+      if (isLetterBefore(text, m.index)) {
+        regex.lastIndex = m.index + 1; // bỏ qua, thử tiếp từ ký tự kế bên
+        continue;
+      }
+      found.push(m);
+    }
+    return found;
+  }
 
   // Mốc nhận diện 1 đáp án: dấu * (tuỳ chọn, đánh dấu đáp án đúng) + chữ cái A-D
   // + dấu phân cách (bắt buộc phải có 1 trong các dấu sau, để tránh nhận nhầm
@@ -81,13 +120,32 @@
   }
 
   // Phiên bản LỎNG HƠN (không bắt buộc đầu dòng, chỉ chặn chữ cái nằm giữa
-  // 1 từ khác qua \p{L} lookbehind) — CHỈ dùng làm phương án dự phòng khi cả
+  // 1 từ khác qua isLetterBefore()) — CHỈ dùng làm phương án dự phòng khi cả
   // block hoàn toàn không có newline nào (người dùng viết liền cả câu hỏi
   // lẫn 4 đáp án trên đúng 1 dòng, không xuống dòng chỗ nào). Trong trường
   // hợp đó không có "đầu dòng" nào để dựa vào, nên đành chấp nhận rủi ro
   // nhận nhầm (hiếm khi xảy ra với văn bản viết liền, ngắn gọn).
   function optionMarkRegexLenient(letter) {
-    return new RegExp('(?<![\\p{L}])(\\*)?\\s*' + letter + '\\s*[.:\\-–—)]\\s*', 'giu');
+    const inner = new RegExp('(\\*)?\\s*' + letter + '\\s*[.:\\-–—)]\\s*', 'giu');
+    // Đối tượng giả lập regex có exec() + lastIndex, để parseQuestionBlock
+    // dùng chung được với bản "strict" mà không phải sửa gì thêm.
+    return {
+      lastIndex: 0,
+      exec: function (str) {
+        inner.lastIndex = this.lastIndex;
+        let m;
+        while ((m = inner.exec(str)) !== null) {
+          if (isLetterBefore(str, m.index)) {
+            inner.lastIndex = m.index + 1;
+            continue;
+          }
+          this.lastIndex = inner.lastIndex;
+          return m;
+        }
+        this.lastIndex = 0;
+        return null;
+      }
+    };
   }
 
   /**
@@ -242,7 +300,7 @@
     }
 
     // Tìm tất cả vị trí bắt đầu của mỗi câu hỏi dựa trên nhãn "Câu N" (hoặc "Câu").
-    const markMatches = [...rawText.matchAll(QUESTION_MARK_REGEX)];
+    const markMatches = findQuestionMarks(rawText);
 
     if (markMatches.length === 0) {
       result.errors.push({
